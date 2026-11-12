@@ -1,0 +1,95 @@
+{
+  "format": 2,
+  "id": "rac1-better-movement",
+  "name": "Better movement (Going Commando)",
+  "version": "0.1.0",
+  "author": "kmomoney",
+  "description": "Ratchet moves as in Ratchet & Clank: Going Commando: his speed follows how far the stick is pushed, he gets going and stops quicker and turns as in the second game, with its turnaround and no skid when you let go; more control in the air; and Going Commando's strafe on L2 or R2, with its side and back flips and hip twist. Jump heights stay the first game's, so every level plays as built.",
+  "license": "GPL-3.0-or-later",
+  "homepage": "https://github.com/kmomoney/rac1-better-movement",
+  "api": "1.0",
+  "multiplayer": "input",
+  "games": {
+    "rac1": [
+      "ntsc"
+    ]
+  },
+  "conflicts": [
+    {
+      "id": "lock-strafe",
+      "reason": "both strafe on L2 and R2 and take the same hook points"
+    }
+  ],
+  "hooks": [
+    "rac1.player.update_motion_input",
+    "rac1.player.turn_to_heading",
+    "rac1.player.approach_speed",
+    "rac1.player.set_planar_velocity",
+    "rac1.pad.process_report",
+    "rac1.camera.follow.apply_overrides",
+    "rac1.player.advance_animation"
+  ],
+  "settings": [
+    {
+      "key": "ground",
+      "name": "Going Commando running",
+      "type": "bool",
+      "default": true,
+      "description": "Speed follows how far the stick is pushed, Ratchet gets going and stops quicker, turns and turns around as in Going Commando, and stops without a skid when you let go."
+    },
+    {
+      "key": "air",
+      "name": "Going Commando air control",
+      "type": "bool",
+      "default": true,
+      "description": "More control of Ratchet in the air, as in Going Commando (quicker in jumps, much more in the double jump). Jump heights stay the first game's."
+    },
+    {
+      "key": "strafe",
+      "name": "Strafe button",
+      "type": "choice",
+      "default": "both",
+      "choices": [
+        {
+          "value": "both",
+          "name": "L2 or R2"
+        },
+        {
+          "value": "l2",
+          "name": "L2 only"
+        },
+        {
+          "value": "r2",
+          "name": "R2 only"
+        },
+        {
+          "value": "off",
+          "name": "Off"
+        }
+      ],
+      "description": "Hold it to strafe as in Going Commando: Ratchet faces where the camera looks and the left stick moves him. L1 still looks and R1 still crouches; with one button only, the other stays the game's."
+    },
+    {
+      "key": "flips",
+      "name": "Strafe flips",
+      "type": "bool",
+      "default": true,
+      "description": "Strafing, X with the stick pushed fully left, right or back flips that way."
+    },
+    {
+      "key": "twist",
+      "name": "Hip twist",
+      "type": "bool",
+      "default": true,
+      "description": "Strafing, Ratchet's hips turn toward where he goes while his upper body keeps facing ahead."
+    },
+    {
+      "key": "trace",
+      "multiplayer": "own",
+      "name": "Trace",
+      "type": "bool",
+      "default": false,
+      "description": "For bug reports: a line in the game's log each tick with what the mod decided and every input it used."
+    }
+  ]
+}
