@@ -16,7 +16,7 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | 3. Game layer and load test | Done: `game.cpp`, `load`, `manifest` tests |
 | 4. Build and checks | Done: 6 of 6 tests, style clean, `package_mod.py --check` ok, README |
 | 5. Play-testing on NTSC-U | Done by script in OpenRAC's port on the NTSC-U disc data (PLAYTEST.md, `tools/playtest.sh`): Veldin, Novalis and Kerwan against the game without the mod, every setting off identical to no mod, jump heights and L1/R1 unchanged, the heli-pack, the hip twist's joints confirmed in pictures, a smoke run of every level. Left for a person: the places the routes do not reach (PLAYTEST.md, last section) |
-| 6. Release | Waits for your go-ahead. Nothing is committed yet |
+| 6. Release | Done on your go-ahead (commit, push, tag; no index listing): github.com/kmomoney/rac1-better-movement, tag `rac1-better-movement-v0.1.0`. CI built and tested every platform (Linux x86-64 and AArch64, Windows, macOS arm64 and x86-64, Android) and published the release with `SHA256SUMS`. Listing it in the openrac-mods index (`index/rac1-better-movement.json`) is left for when you want it |
 
 ## 1. Decisions
 
