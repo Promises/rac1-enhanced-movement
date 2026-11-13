@@ -231,22 +231,43 @@ curve, no queued frame, no loop frame. The mod:
 2. fires the triggers it crossed (`Moby_PlaySound`, an executable function);
 3. calls the original with `anim_speed` 0 for the call, so it moves nothing and does the rest.
 
-## 5. Addresses (NTSC-U, SCUS-97199)
+## 5. Addresses (PAL v2.00 SCES-50916, NTSC-U v1.00 SCUS-97199)
 
-| | NTSC-U | Read | Source |
-|---|---|---|---|
-| hero `g_hero` | `0x0013F350` | as is | `rac1_version.h` (PAL `0x0013F450`) |
-| pad `g_controller_state` | `0x0013C940` | as is | `rac1_version.h`, `pad.h` |
-| `g_frame_scale_sq`, `g_frame_time`, `g_frame_time_sq` | `0x0015ED64`, `0x0015ED6C`, `0x0015ED70` | relocate | `rac1_version.h`, `names_ntsc.tsv` |
-| `cinematic_mode` | `0x0015F5C4` | relocate_level(0) | `rac1_version.h` (PAL `D_L00_0015F6A8`) |
-| `camera_yaw` | `0x00166DD8` | relocate_level(0) | NTSC decomp `stick_target` (`FUN_L00_002118c8`) reads `D_L00_00166DD8` |
-| `g_current_follow_cam` | `0x00166E00` | relocate_level(0) | `rac1_version.h`, `names_ntsc.tsv` |
-| `follow_cam_turn_blend_weight` | `0x0015EF40` | relocate_level(0) | NTSC decomp `follow_camera_setup.c` |
-| `hero_eases` (pose table) | `0x0017A680` | relocate_level(0) | `names_ntsc.tsv` |
-| `set_follow_camera_orbit_clamp_mode` | `FUN_L00_002e8568` | function | `us_map.tsv` (every level) |
-| `follow_camera_start_slide` | `FUN_L00_002e8648` | function | `us_map.tsv` (every level) |
-| `follow_camera_set_lateral_spring` | `FUN_L00_002e8590` | function | `us_map.tsv` (every level) |
-| `Moby_PlaySound` | `FUN_0022da68` | function | `us_map.tsv` (executable) |
+PAL's are rac1-decomp's own (`include/names/*.h`; OpenRAC's PAL build names functions as rac1-decomp
+does). NTSC-U's are the same globals and functions at the US addresses.
+
+| | PAL | NTSC-U | Read | NTSC-U's source |
+|---|---|---|---|---|
+| hero `g_hero` | `0x0013F450` | `0x0013F350` | as is | `rac1_version.h` |
+| pad `g_controller_state` | `0x0013CA40` | `0x0013C940` | as is | `rac1_version.h`, `pad.h` |
+| `g_frame_scale_sq`, `g_frame_time`, `g_frame_time_sq` | `0x0015EE64`, `0x0015EE6C`, `0x0015EE70` | `0x0015ED64`, `0x0015ED6C`, `0x0015ED70` | relocate | `rac1_version.h`, `names_ntsc.tsv` |
+| `frame_scale` (`scale_ticks`'s factor) | `0x0015EE60` | `0x0015ED60` | relocate | `rac1_version.h` |
+| `cinematic_mode` | `D_L00_0015F6A8` | `0x0015F5C4` | relocate_level(0) | `rac1_version.h` |
+| `camera_yaw` | `D_L00_00166ED8` | `0x00166DD8` | relocate_level(0) | NTSC decomp `stick_target` (`FUN_L00_002118c8`) reads `D_L00_00166DD8` |
+| `g_current_follow_cam` | `D_L00_00166F00` | `0x00166E00` | relocate_level(0) | `rac1_version.h`, `names_ntsc.tsv` |
+| `follow_cam_turn_blend_weight` | `D_L00_0015F040` | `0x0015EF40` | relocate_level(0) | NTSC decomp `follow_camera_setup.c` |
+| `hero_eases` (pose table) | `D_L00_0017A780` | `0x0017A680` | relocate_level(0) | `names_ntsc.tsv` |
+| `set_follow_camera_orbit_clamp_mode` | `func_L00_002E9A18` | `FUN_L00_002e8568` | function | `us_map.tsv` (every level) |
+| `follow_camera_start_slide` | `func_L00_002E9AF8` | `FUN_L00_002e8648` | function | `us_map.tsv` (every level) |
+| `follow_camera_set_lateral_spring` | `func_L00_002E9A40` | `FUN_L00_002e8590` | function | `us_map.tsv` (every level) |
+| `Moby_PlaySound` | `func_0022ED80` | `FUN_0022da68` | function | `us_map.tsv` (executable) |
+
+**PAL's 50 Hz** (`set_video_timing`: `g_frame_time` 1/50, `g_frame_scale_sq` 1.44, `frame_scale`
+1.2). OpenRAC does not run it today: it keeps the PAL game in its 60 Hz mode and ticks every game 60
+times a second (`openrac_game_set_video_mode` in `port/game/common/program/game_host.cpp`, which logs
+"PAL 50 Hz: the port keeps 60"). So on OpenRAC the PAL disc plays with NTSC-U's timing. The mod reads
+the timing the game set each tick, so it is right in either mode; the unit and load tests check the
+50 Hz path. rac2's per-tick numbers become this tick's the way rac1 scales its own: speeds and turn limits
+by 60 × `g_frame_time`, accelerations by 3600 × `g_frame_time_sq`, turn spring coefficients by
+`g_frame_scale_sq`. That is exactly rac2's own PAL release: its strafe turn there is
+`func_L00_002B3EF8(0, 0.053280003, 0.36, 0.24434614)` (rac2-decomp `src/pal/levels/shared/L00_002B3210.c`),
+0.037 × 1.44, 0.25 × 1.44 and 0.2036 × 1.2.
+- **rac1's own tick counts** (the jump windows 9 and 7, the run's 4 ticks in the air, its 25 ticks
+  to idle, the flip's 12 before landing) are counted as rac1 counts them: `scale_ticks(n)`
+  (`func_001F9850`) = `n × frame_scale + 0.5`, cut. That is 11, 8, 5, 30 and 14 on PAL.
+- **rac2's own counts** (the strafe's 5-tick side timers, the stick's swing 1 and 7 polls back) stay
+  as they are. rac2's PAL release keeps them (the same `L00_002B3210.c`, and `func_L00_0032F038(1)`,
+  `(7)` throughout `src/pal`).
 
 Hero offsets (`include/structs/hero.h`; seen in the code cited):
 

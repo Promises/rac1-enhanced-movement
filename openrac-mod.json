@@ -2,7 +2,7 @@
   "format": 2,
   "id": "rac1-better-movement",
   "name": "Better movement (Going Commando)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "kmomoney",
   "description": "Ratchet moves as in Ratchet & Clank: Going Commando: his speed follows how far the stick is pushed, he gets going and stops quicker and turns as in the second game, with its turnaround and no skid when you let go; more control in the air; and Going Commando's strafe on L2 or R2, with its side and back flips and hip twist. Jump heights stay the first game's, so every level plays as built.",
   "license": "GPL-3.0-or-later",
@@ -11,6 +11,7 @@
   "multiplayer": "input",
   "games": {
     "rac1": [
+      "pal",
       "ntsc"
     ]
   },

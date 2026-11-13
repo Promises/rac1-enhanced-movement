@@ -11,8 +11,13 @@ The jump heights stay the first game's, so every level plays as it was built.
 How each part was taken from Going Commando's code, with its evidence:
 [DESIGN.md](DESIGN.md). The plan the mod was built to: [PLAN.md](PLAN.md).
 
-**Disc:** Ratchet & Clank NTSC-U (SCUS-97199). Other discs are refused with a
-reason in the launcher.
+**Discs:** Ratchet & Clank PAL v2.00 (SCES-50916) and NTSC-U v1.00
+(SCUS-97199), the two the other mods for the first game support. PAL v1.00
+and the Japanese disc are refused, with a reason, in the launcher. OpenRAC
+runs the PAL disc in the game's 60 Hz mode, so on PAL the mod plays exactly as
+on NTSC-U. It reads the game's own timing each tick, so a 50 Hz PAL game would
+get Going Commando's numbers scaled as Going Commando's own PAL release scales
+them.
 
 ## What changes
 
@@ -136,6 +141,10 @@ against it.
 
 ## Notes
 
+- **0.2.0**: the PAL v2.00 disc, play-tested on it as on NTSC-U (PLAYTEST.md).
+  The mod also follows the game's 50 Hz timing (rac2's numbers scaled as rac2's
+  PAL release scales them, the first game's tick windows counted as it counts
+  them), which OpenRAC does not run today.
 - **0.1.0**: the first version, NTSC-U.
 
 Nothing from the game's discs is in this repository: only addresses, offsets

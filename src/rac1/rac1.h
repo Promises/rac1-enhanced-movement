@@ -17,6 +17,7 @@
 /* HeroEnterMoveState's jump arm: air_stick_speed 5.7 by default, 3.5 in the double jump. */
 #define RAC1_AIR_STICK_SPEED 5.7f
 #define RAC1_DOUBLE_JUMP_AIR_SPEED 3.5f
+/* The tick counts below are rac1's, before scale_ticks (bm_scale_ticks): more ticks on PAL. */
 /* hero_update_transitions, the run: STOP when speed_xy is over 2.7, else idle after 25 ticks. */
 #define RAC1_EXIT_STOP_SPEED 2.7f
 #define RAC1_EXIT_IDLE_TICKS 25
@@ -29,6 +30,8 @@
  * jump_buffer_lockout). */
 #define RAC1_RUN_JUMP_WINDOW 9
 #define RAC1_IDLE_JUMP_WINDOW 7
+/* hero_update_transitions, the run: the jump is taken only within 4 ticks off the ground. */
+#define RAC1_RUN_JUMP_AIR_TICKS 4
 
 /* Hero states (enums/hero_state.h). */
 enum {

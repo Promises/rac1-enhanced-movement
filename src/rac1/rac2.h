@@ -107,11 +107,13 @@
 
 /* --- This tick's units ---------------------------------------------------------------------- */
 
-/* The tick rac1 runs: g_frame_time (seconds a tick), g_frame_time_sq and g_frame_scale_sq. */
+/* The tick rac1 runs: g_frame_time (seconds a tick), g_frame_time_sq, g_frame_scale_sq and
+ * frame_scale (set_video_timing: 1/60, 1/3600, 1, 1 on NTSC; 1/50, 1/2500, 1.44, 1.2 on PAL). */
 typedef struct bm_tick {
     float ft;
     float ft2;
     float fs2;
+    float fs;
 } bm_tick;
 
 /* A rac2 speed per tick (60 Hz) in this tick's units. */
@@ -134,9 +136,22 @@ static inline float rac2_spring(float coefficient, const bm_tick* t) {
     return coefficient * t->fs2;
 }
 
-/* The NTSC tick (60 Hz): rac1's g_frame_time, g_frame_time_sq, g_frame_scale_sq there. */
+/* A count of ticks as rac1 scales its own (scale_ticks, func_001F9850): n * frame_scale + 0.5, cut
+ * to an integer. rac1's windows the mod mirrors (the jump's, the run's exit) are counted so. rac2's own
+ * counts are not: its PAL release keeps them in ticks (rac2-decomp src/pal, L00_002B3210.c). */
+static inline int bm_scale_ticks(int n, const bm_tick* t) {
+    return (int)(0.5f + (float)n * t->fs);
+}
+
+/* The NTSC tick (60 Hz): rac1's g_frame_time, g_frame_time_sq, g_frame_scale_sq, frame_scale there. */
 static inline bm_tick bm_tick_ntsc(void) {
-    bm_tick t = {1.0f / 60.0f, 1.0f / 3600.0f, 1.0f};
+    bm_tick t = {1.0f / 60.0f, 1.0f / 3600.0f, 1.0f, 1.0f};
+    return t;
+}
+
+/* The PAL tick (50 Hz). */
+static inline bm_tick bm_tick_pal(void) {
+    bm_tick t = {1.0f / 50.0f, 1.0f / 2500.0f, 1.44f, 1.2f};
     return t;
 }
 

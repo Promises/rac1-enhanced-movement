@@ -17,6 +17,7 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | 4. Build and checks | Done: 6 of 6 tests, style clean, `package_mod.py --check` ok, README |
 | 5. Play-testing on NTSC-U | Done by script in OpenRAC's port on the NTSC-U disc data (PLAYTEST.md, `tools/playtest.sh`): Veldin, Novalis and Kerwan against the game without the mod, every setting off identical to no mod, jump heights and L1/R1 unchanged, the heli-pack, the hip twist's joints confirmed in pictures, a smoke run of every level. Left for a person: the places the routes do not reach (PLAYTEST.md, last section) |
 | 6. Release | Done on your go-ahead (commit, push, tag; no index listing): github.com/kmomoney/rac1-better-movement, tag `rac1-better-movement-v0.1.0`. CI built and tested every platform (Linux x86-64 and AArch64, Windows, macOS arm64 and x86-64, Android) and published the release with `SHA256SUMS`. Listing it in the openrac-mods index (`index/rac1-better-movement.json`) is left for when you want it |
+| 7. PAL v2.00 (0.2.0) | Done on your request: the PAL row (DESIGN.md section 5), rac1's tick windows counted as `scale_ticks` counts them, the load test on both discs and at PAL's 50 Hz, the play-test on the PAL disc (PLAYTEST.md); released as 0.2.0 |
 
 ## 1. Decisions
 
@@ -25,7 +26,7 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | Scope | Ground movement, jumps and air control, rac2's L2/R2 strafe with its flips, swimming, heli/thruster pack |
 | Jump heights | rac1's, for every jump, the pack jumps included. rac1's levels are built around them. rac2's plain jump is lower (1.28 tapped / 2.3 held against 1.47 / 2.62) |
 | Hook points | The SDK's existing ones only. No OpenRAC change |
-| Discs | NTSC-U (`ntsc`, SCUS-97199) only, the disc that can be play-tested |
+| Discs | NTSC-U (`ntsc`, SCUS-97199) only, the disc that could be play-tested. **0.2.0 adds PAL v2.00 (`pal`, SCES-50916)**, once you had its disc, to match the other rac1 mods (`pal` and `ntsc`) |
 | Strafe | Written for this mod from the decompilations. No code or tests are taken from `lock-strafe`. Both mods take L2/R2 and the same hook points, so the manifest declares `"conflicts": ["lock-strafe"]` |
 | Repository | `~/Projects/rac1-better-movement`, its own git repository, started from OpenRAC's `sdk/template`. Nothing is pushed or tagged without asking |
 | Id | `rac1-better-movement`, version `0.1.0` |

@@ -8,7 +8,7 @@
 
 int main(void) {
     const bm_tick ntsc = bm_tick_ntsc();
-    const bm_tick pal = {1.0f / 50.0f, 1.0f / 2500.0f, 1.44f};
+    const bm_tick pal = bm_tick_pal();
 
     // The plain jump at NTSC: 5.7 / 60 = 0.095 becomes 0.099166669 (5.95 / 60).
     CHECK_NEAR(bm_air_stick_speed(0x07, 0.095f, &ntsc), 0.099166669, TOL);

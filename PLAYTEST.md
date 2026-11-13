@@ -109,6 +109,26 @@ and the mod loaded.
 | 14 Oltanis | strafing left he slid along a wall: facing the camera exactly, moving 73 degrees off the stick at 1.67 u/s (5.95 × cos 73) |
 | 2 Aridia | both runs fell into the same hazard and waited to respawn (0x68) through the strafe |
 
+### PAL v2.00 (0.2.0)
+
+The same checks on the PAL disc (`DISC=pal`, its data from OpenRAC's `tools/extractor.py`, the
+program `openrac-rac1-pal` built from the PAL decompilation).
+
+OpenRAC runs the PAL game in its 60 Hz mode (the port's log: "PAL 50 Hz: the port keeps 60"), so the
+game itself plays PAL exactly as NTSC-U, tick for tick. Without the mod, the PAL runs gave NTSC-U's
+numbers: run 5.70 u/s, 43 ticks to 90%, STOP for 48 ticks. With the mod:
+
+- **Veldin, the standard route:** the same as on NTSC-U. Run 5.95 u/s, 90% in 19 ticks; straight to
+  idle on letting go, sliding 0.27; half stick 2.98; strafing left, right and back; the flip (0xB)
+  for 69 ticks at 5.0 u/s; the standing turn to the camera.
+- **Every setting off:** identical to no mod on all 1722 ticks.
+- **All 19 levels:** each run reached control and ended without a fault, and 0.2.0 loaded on each.
+  Level for level the same as the NTSC-U sweep above: the run, the stop, the flips, Clank untouched
+  on Orxon, and the same falls the route leads to.
+
+The 50 Hz path itself (rac2's numbers scaled for it, rac1's windows counted by `scale_ticks`) cannot
+run in OpenRAC today. The unit tests and the load test's PAL-tick scenario check it.
+
 ## Not covered by script
 
 These need a save that has reached them, or a teleport the route does not do yet:

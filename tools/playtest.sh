@@ -1,7 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-# One scripted play-test run of the mod in OpenRAC's rac1 NTSC-U port, hidden and silent: the
+# One scripted play-test run of the mod in OpenRAC's rac1 port, hidden and silent: the
 # port's own development switches (OpenRAC docs/port/RAC1_PAL_TESTING.md, DEBUGGING.md,
 # REGRESSION.md) start a level, press the pad on a schedule counted from control, and write one JSON
 # line a tick (OPENRAC_TRACE: the hero's position hp, rotation hr, state hs, the camera's forward fw).
@@ -14,13 +14,15 @@
 # VAR=VALUE more of the port's switches, and ROUTE= (OPENRAC_PRESS entries) and CF= (frames after
 #           control) to replace the standard route
 #
-# The port and its data: OPENRAC (an OpenRAC checkout with port/build/release built, default
-# ../OpenRAC), DATA (the launcher's rac1 data folder, default ~/OpenRAC/active/rac1/data). LEVELS
+# The port and its data: DISC (ntsc, the default, or pal: the program openrac-rac1-DISC), OPENRAC (an
+# OpenRAC checkout with port/build/release built, default ../OpenRAC), DATA (the disc's data folder as
+# the launcher or tools/extractor.py writes it, default ~/OpenRAC/active/rac1/data). LEVELS
 # (an export of the levels, OpenRAC's assets/port/rac1/ntsc) makes the port draw the world, for
 # OPENRAC_SHOT pictures; the movement does not need it.
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")/.." && pwd)
+DISC=${DISC:-ntsc}
 OPENRAC=${OPENRAC:-$HERE/../OpenRAC}
 DATA=${DATA:-$HOME/OpenRAC/active/rac1/data}
 OUT=$1
@@ -64,7 +66,7 @@ fi
 
 env "$@" SDL_AUDIODRIVER=dummy OPENRAC_AUDIO_TICKED=1 OPENRAC_HIDDEN=1 OPENRAC_UNCAPPED=1 OPENRAC_DIRECT=1 \
     OPENRAC_PRESS="100:4000:5,k30:8:3,$ROUTE" OPENRAC_CONTROL_FRAMES="$CF" OPENRAC_TRACE="$OUT/$NAME.jsonl" \
-    timeout 300 "$OPENRAC/port/build/release/openrac-rac1-ntsc" --data "$DATA" --window --no-card \
+    timeout 300 "$OPENRAC/port/build/release/openrac-rac1-$DISC" --data "$DATA" --window --no-card \
     --level "$LEVEL" --skip-movies --frames 12000 "${MODS[@]}" "${EXTRA[@]}" > "$OUT/$NAME.log" 2>&1 || true
 
 echo "$NAME: $(grep -c . "$OUT/$NAME.jsonl") ticks, control $(grep -c 'control at' "$OUT/$NAME.log")"

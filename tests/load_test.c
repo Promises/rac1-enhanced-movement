@@ -99,6 +99,7 @@ static void reset_game(void) {
     putf(D->frame_time, 1.0f / 60.0f);
     putf(D->frame_time_sq, 1.0f / 3600.0f);
     putf(D->frame_scale_sq, 1.0f);
+    putf(D->frame_scale, 1.0f);
     putu(H(BM_HERO_MOBY), MOBY);
     putu(D->follow_cam, CAM_RECORD);
     puts16(CAM_RECORD + BM_CAMERA_KIND, 0);
@@ -433,7 +434,7 @@ static void defaults(void) {
     s_strafe = "both";
     g_no_approach = 0;
     g_game = "rac1";
-    g_version = "ntsc";
+    g_version = D->version;
 }
 
 /* A hook point as the game calls it: the mod's replacement, or the game's own when no mod took it. */
@@ -473,9 +474,9 @@ static void refusals(void) {
     CHECK_EQ(g_hooks_taken, 0);
 
     defaults();
-    g_version = "pal";
+    g_version = "jp";
     CHECK_EQ(load_mod() != 0, 1);
-    CHECK_EQ(strstr(g_fail, "NTSC-U") != NULL, 1);
+    CHECK_EQ(strstr(g_fail, "PAL v2.00 and NTSC-U") != NULL, 1);
     CHECK_EQ(g_hooks_taken, 0);
 
     // Everything off: loads, takes nothing.
@@ -773,6 +774,36 @@ static void settings_off(void) {
     g_inside = NULL;
 }
 
+/* PAL's 50 Hz tick on PAL's row: rac2's numbers scaled as rac1 scales its own, rac1's counts by 1.2. */
+static void pal_tick(void) {
+    D = &k_bm_discs[0];
+    CHECK_EQ(strcmp(D->version, "pal"), 0);
+    defaults();
+    load_mod();
+    reset_game();
+    putf(D->frame_time, 1.0f / 50.0f);
+    putf(D->frame_time_sq, 1.0f / 2500.0f);
+    putf(D->frame_scale_sq, 1.44f);
+    putf(D->frame_scale, 1.2f);
+    putu(H(BM_HERO_STATE), 2);
+    putf(H(BM_HERO_STICK), 1.0f);
+    putf(H(BM_HERO_FLAT_SPEED), 0.09f);
+    g_inside = run_tick;
+    CALL_UPDATE();
+
+    // The walk band at full stick: 0.022 x 1.44 = 0.03168, 0.27 x 1.44 = 0.3888, 0.093084246 x 1.2.
+    CHECK_NEAR(g_turn_args[0], 0.03168, TOL);
+    CHECK_NEAR(g_turn_args[1], 0.3888, TOL);
+    CHECK_NEAR(g_turn_args[2], 0.111701095, TOL);
+
+    // The exit: the state timer past rac1's 25 ticks as PAL counts them, 30.
+    putf(H(BM_HERO_STICK), 0.05f);
+    putu(H(BM_HERO_STATE_TIMER), 3);
+    g_inside = NULL;
+    CALL_UPDATE();
+    CHECK_EQ(getu(H(BM_HERO_STATE_TIMER)), 31);
+}
+
 int main(int argc, char** argv) {
     openrac_mod_info info = {0};
     void* lib;
@@ -813,16 +844,22 @@ int main(int argc, char** argv) {
     CHECK_EQ(info.api_minor, 0);
 
     g_mem = calloc(1, MEMORY_SIZE);
-    D = &k_bm_discs[0];
 
-    refusals();
-    hooks();
-    run();
-    air();
-    run_exit();
-    strafe();
-    backpedal();
-    settings_off();
+    // Every disc's row, each with the game laid out at its own addresses.
+    for (size_t i = 0; i < sizeof k_bm_discs / sizeof k_bm_discs[0]; i++) {
+        D = &k_bm_discs[i];
+        printf("disc %s\n", D->version);
+        refusals();
+        hooks();
+        run();
+        air();
+        run_exit();
+        strafe();
+        backpedal();
+        settings_off();
+    }
+
+    pal_tick();
 
     // The last line the mod logged at load, for the record.
     printf("last log: %s\n", g_last_log);

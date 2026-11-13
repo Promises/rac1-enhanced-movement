@@ -83,7 +83,7 @@ static void turns(void) {
 
 /* The turn at PAL's tick, scaled as rac1 scales its own. */
 static void pal_turn(void) {
-    const bm_tick t = {1.0f / 50.0f, 1.0f / 2500.0f, 1.44f};
+    const bm_tick t = bm_tick_pal();
     bm_run_flags none = {0, 0};
     bm_run_in in = run(1.0f, 0.0f, 0.09f, 1);
     bm_turn turn = bm_run_turn(&in, &none, &t);
@@ -261,7 +261,25 @@ static void stopping(void) {
     CHECK_NEAR(bm_rac1_run_down(1, &t), 0.0047222222, TOL);
 }
 
+/* rac1's tick counts as scale_ticks gives them: n * frame_scale + 0.5, cut. */
+static void ticks(void) {
+    const bm_tick ntsc = bm_tick_ntsc();
+    const bm_tick pal = bm_tick_pal();
+
+    // NTSC: frame_scale 1, the counts as written.
+    CHECK_EQ(bm_scale_ticks(9, &ntsc), 9);
+    CHECK_EQ(bm_scale_ticks(25, &ntsc), 25);
+
+    // PAL: frame_scale 1.2. 9 x 1.2 + 0.5 = 11.3: 11; 7: 8.9: 8; 25: 30.5: 30; 12: 14.9: 14; 4: 5.3: 5.
+    CHECK_EQ(bm_scale_ticks(9, &pal), 11);
+    CHECK_EQ(bm_scale_ticks(7, &pal), 8);
+    CHECK_EQ(bm_scale_ticks(25, &pal), 30);
+    CHECK_EQ(bm_scale_ticks(12, &pal), 14);
+    CHECK_EQ(bm_scale_ticks(4, &pal), 5);
+}
+
 int main(void) {
+    ticks();
     turns();
     pal_turn();
     k_factor();

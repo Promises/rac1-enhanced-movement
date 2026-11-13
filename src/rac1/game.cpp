@@ -127,15 +127,18 @@ gaddr level0(std::uint32_t address) {
     return s_mod->relocate_level(0, address);
 }
 
-// The tick's units: g_frame_time, its square, g_frame_scale_sq. NTSC's when a read is not sane.
+// The tick's units: g_frame_time, its square, g_frame_scale_sq, frame_scale. NTSC's when a read is
+// not sane.
 bm_tick read_tick() {
     bm_tick t;
     t.ft = get<float>(s_mod->relocate(s_disc->frame_time));
     t.ft2 = get<float>(s_mod->relocate(s_disc->frame_time_sq));
     t.fs2 = get<float>(s_mod->relocate(s_disc->frame_scale_sq));
+    t.fs = get<float>(s_mod->relocate(s_disc->frame_scale));
 
     // A tick of 1/100 to 1/25 of a second, as the game runs; else the game's numbers are not set.
-    if (!(t.ft > 0.01f && t.ft < 0.04f) || !(t.ft2 > 0.0f) || !(t.fs2 > 0.0f)) {
+    if (!(t.ft > 0.01f && t.ft < 0.04f) || !(t.ft2 > 0.0f) || !(t.fs2 > 0.0f)
+        || !(t.fs > 0.5f && t.fs < 2.0f)) {
         return bm_tick_ntsc();
     }
 
@@ -329,7 +332,8 @@ void steer_transitions(int st) {
     const float stick = get<float>(hero(BM_HERO_STICK));
     const float facing = get<float>(hero(BM_HERO_FACING));
     const float off_camera = bm_diff(facing, camera_yaw());
-    const int window = is_run(st) ? RAC1_RUN_JUMP_WINDOW : RAC1_IDLE_JUMP_WINDOW;
+    const int window =
+        bm_scale_ticks(is_run(st) ? RAC1_RUN_JUMP_WINDOW : RAC1_IDLE_JUMP_WINDOW, &s.tick);
     int x_slot = -1;
     const bool x = pressed_within(BM_PAD_CROSS, window, &x_slot) >= 0;
 
@@ -339,7 +343,8 @@ void steer_transitions(int st) {
     if (s_set.flips && s.strafing && x && (st == RAC1_STATE_IDLE || st == RAC1_STATE_RUN)) {
         const int dir = bm_stick_vs_facing(get<float>(hero(BM_HERO_MOVE_YAW)), facing);
         const bool idle_ok = get<int16_t>(hero(BM_HERO_UNK308)) != 1;
-        const bool run_ok = get<int16_t>(hero(BM_HERO_AIR_FRAMES)) <= 4;
+        const bool run_ok = get<int16_t>(hero(BM_HERO_AIR_FRAMES))
+                            <= bm_scale_ticks(RAC1_RUN_JUMP_AIR_TICKS, &s.tick);
 
         // rac2's test, and what rac1's own jump code needs to reach its crouch jump this tick.
         if (bm_flip(stick, dir) && (st == RAC1_STATE_IDLE ? idle_ok : run_ok)) {
@@ -379,9 +384,11 @@ void steer_transitions(int st) {
             steer<float>(hero(BM_HERO_SPEED_XY), stop * 0.99f);
         }
 
-        // Past rac1's 25 ticks (at PAL's 50 Hz 25 is fewer: 60 covers both).
-        if (get<int32_t>(hero(BM_HERO_STATE_TIMER)) <= RAC1_EXIT_IDLE_TICKS) {
-            steer<int32_t>(hero(BM_HERO_STATE_TIMER), 60);
+        const int idle_after = bm_scale_ticks(RAC1_EXIT_IDLE_TICKS, &s.tick);
+
+        // Past rac1's 25 ticks (scaled as rac1 scales them: 30 on PAL).
+        if (get<int32_t>(hero(BM_HERO_STATE_TIMER)) <= idle_after) {
+            steer<int32_t>(hero(BM_HERO_STATE_TIMER), idle_after + 1);
         }
 
         s.idle_clamp = true;
@@ -671,9 +678,9 @@ void update(Original original) {
 
     // Each tick of it: the drift left so rac1's easing lands on rac2's; no push along the takeoff.
     if (s.flipping) {
-        const bool to_zero =
-            get<int16_t>(hero(BM_HERO_PAST_APEX)) != 0
-            && get<int32_t>(hero(BM_HERO_FRAMES_TO_LAND)) < RAC1_FLIP_DRIFT_LANDING_TICKS;
+        const bool to_zero = get<int16_t>(hero(BM_HERO_PAST_APEX)) != 0
+                             && get<int32_t>(hero(BM_HERO_FRAMES_TO_LAND))
+                                    < bm_scale_ticks(RAC1_FLIP_DRIFT_LANDING_TICKS, &s.tick);
         const float drift = get<float>(hero(BM_HERO_DRIFT_SPEED));
         put<float>(
             hero(BM_HERO_DRIFT_SPEED),
@@ -952,7 +959,7 @@ void load(openrac::Mod& mod) {
     // A disc without a row.
     if (s_disc == nullptr) {
         throw openrac::Error(
-            "rac1-better-movement knows the NTSC-U disc (SCUS-97199) only, not "
+            "rac1-better-movement knows the PAL v2.00 and NTSC-U v1.00 discs, not "
             + std::string(mod.version())
         );
     }
