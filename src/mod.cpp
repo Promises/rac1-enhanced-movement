@@ -15,15 +15,15 @@ namespace {
 void load(openrac::Mod& mod) {
     // Ratchet & Clank: its own addresses, hooks and decisions.
     if (mod.game() == "rac1") {
-        better_movement::rac1::load(mod);
+        enhanced_movement::rac1::load(mod);
         return;
     }
 
     throw openrac::Error(
-        "rac1-better-movement is for Ratchet & Clank (rac1), not " + std::string(mod.game())
+        "rac1-enhanced-movement is for Ratchet & Clank (rac1), not " + std::string(mod.game())
     );
 }
 
 }  // namespace
 
-OPENRAC_MOD_CPP(RAC1_BETTER_MOVEMENT_ID, RAC1_BETTER_MOVEMENT_VERSION, load)
+OPENRAC_MOD_CPP(RAC1_ENHANCED_MOVEMENT_ID, RAC1_ENHANCED_MOVEMENT_VERSION, load)

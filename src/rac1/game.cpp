@@ -31,7 +31,7 @@
 #include "rac1/hero.h"
 #include "rac1/strafe.h"
 
-namespace better_movement::rac1 {
+namespace enhanced_movement::rac1 {
 
 namespace {
 
@@ -959,7 +959,7 @@ void load(openrac::Mod& mod) {
     // A disc without a row.
     if (s_disc == nullptr) {
         throw openrac::Error(
-            "rac1-better-movement knows the PAL v2.00 and NTSC-U v1.00 discs, not "
+            "rac1-enhanced-movement knows the PAL v2.00 and NTSC-U v1.00 discs, not "
             + std::string(mod.version())
         );
     }
@@ -971,7 +971,7 @@ void load(openrac::Mod& mod) {
     s_set.strafe = strafe_buttons(mod.setting<std::string>("strafe"));
     s_set.flips = mod.setting<bool>("flips");
     s_set.twist = mod.setting<bool>("twist");
-    const char* env = std::getenv("OPENRAC_BETTER_MOVEMENT_TRACE");
+    const char* env = std::getenv("OPENRAC_ENHANCED_MOVEMENT_TRACE");
     s_set.trace = mod.setting<bool>("trace") || (env != nullptr && std::strcmp(env, "1") == 0);
 
     // 3. Every piece of state the hooks keep.
@@ -1053,4 +1053,4 @@ void load(openrac::Mod& mod) {
     }
 }
 
-}  // namespace better_movement::rac1
+}  // namespace enhanced_movement::rac1

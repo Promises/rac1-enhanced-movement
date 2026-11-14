@@ -13,8 +13,8 @@
  *      the speed step (bm_run_speed);
  *   5. the velocity along the move yaw while `along`, else along the facing.
  */
-#ifndef RAC1_BETTER_MOVEMENT_GROUND_H
-#define RAC1_BETTER_MOVEMENT_GROUND_H
+#ifndef RAC1_ENHANCED_MOVEMENT_GROUND_H
+#define RAC1_ENHANCED_MOVEMENT_GROUND_H
 
 #include "rac1/angle.h"
 #include "rac1/rac1.h"
@@ -283,4 +283,4 @@ static inline int bm_rac2_running_jump(float stick, int strafing) {
     return stick > RAC2_RUN_JUMP_STICK && !strafing;
 }
 
-#endif /* RAC1_BETTER_MOVEMENT_GROUND_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_GROUND_H */

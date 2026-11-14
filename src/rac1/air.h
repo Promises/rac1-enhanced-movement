@@ -3,8 +3,8 @@
  * Going Commando's air control, decided apart from game memory (DESIGN.md section 3). The jump
  * heights stay rac1's; only air_stick_speed (+0x424), set when a jump state is entered, changes.
  */
-#ifndef RAC1_BETTER_MOVEMENT_AIR_H
-#define RAC1_BETTER_MOVEMENT_AIR_H
+#ifndef RAC1_ENHANCED_MOVEMENT_AIR_H
+#define RAC1_ENHANCED_MOVEMENT_AIR_H
 
 #include <math.h>
 
@@ -57,4 +57,4 @@ static inline float bm_air_stick_speed(int state, float current, const bm_tick* 
     return current;
 }
 
-#endif /* RAC1_BETTER_MOVEMENT_AIR_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_AIR_H */

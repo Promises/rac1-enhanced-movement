@@ -1,4 +1,4 @@
-# rac1-better-movement: the play-test (PLAN.md Phase 5)
+# rac1-enhanced-movement: the play-test (PLAN.md Phase 5)
 
 The mod played in OpenRAC's own rac1 NTSC-U port (built from OpenRAC `develop` at `6dc9cade`,
 interface 1.14), on the player's disc data, by script. No person drove these runs: the port's

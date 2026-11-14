@@ -6,8 +6,8 @@
  * (sectors), func_L00_002B35A0 (facing and sides), func_L00_002C9FC8 (flip), func_L00_002B6BC8
  * (the flip's drift), func_L00_002B7B80 (twist), func_L00_002CB3A8 (standing start).
  */
-#ifndef RAC1_BETTER_MOVEMENT_STRAFE_H
-#define RAC1_BETTER_MOVEMENT_STRAFE_H
+#ifndef RAC1_ENHANCED_MOVEMENT_STRAFE_H
+#define RAC1_ENHANCED_MOVEMENT_STRAFE_H
 
 #include <math.h>
 
@@ -243,4 +243,4 @@ static inline int bm_anim_crossed_back(int from, int to, int at, int wrapped) {
     return at <= from || to < at;
 }
 
-#endif /* RAC1_BETTER_MOVEMENT_STRAFE_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_STRAFE_H */

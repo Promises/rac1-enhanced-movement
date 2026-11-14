@@ -1,12 +1,12 @@
 {
   "format": 2,
-  "id": "rac1-better-movement",
-  "name": "Better movement (Going Commando)",
-  "version": "0.2.0",
+  "id": "rac1-enhanced-movement",
+  "name": "Enhanced movement (Going Commando)",
+  "version": "0.2.1",
   "author": "kmomoney",
   "description": "Ratchet moves as in Ratchet & Clank: Going Commando: his speed follows how far the stick is pushed, he gets going and stops quicker and turns as in the second game, with its turnaround and no skid when you let go; more control in the air; and Going Commando's strafe on L2 or R2, with its side and back flips and hip twist. Jump heights stay the first game's, so every level plays as built.",
   "license": "GPL-3.0-or-later",
-  "homepage": "https://github.com/kmomoney/rac1-better-movement",
+  "homepage": "https://github.com/kmomoney/rac1-enhanced-movement",
   "api": "1.0",
   "multiplayer": "input",
   "games": {
@@ -19,6 +19,10 @@
     {
       "id": "lock-strafe",
       "reason": "both strafe on L2 and R2 and take the same hook points"
+    },
+    {
+      "id": "rac1-better-movement",
+      "reason": "the same mod under its old name: remove it"
     }
   ],
   "hooks": [

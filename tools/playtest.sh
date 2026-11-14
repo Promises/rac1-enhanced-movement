@@ -53,8 +53,8 @@ MODS=(--no-mods)
 # The mod from this checkout's build, listed with the settings asked for.
 if [ "$SETTINGS" != none ]; then
     mkdir -p "$OUT/plugins-$NAME"
-    ln -sfn "$HERE/build/package/rac1_better_movement" "$OUT/plugins-$NAME/rac1-better-movement"
-    printf '{"format": 1, "mods": [{"id": "rac1-better-movement", "enabled": true, "settings": %s}]}\n' \
+    ln -sfn "$HERE/build/package/rac1_enhanced_movement" "$OUT/plugins-$NAME/rac1-enhanced-movement"
+    printf '{"format": 1, "mods": [{"id": "rac1-enhanced-movement", "enabled": true, "settings": %s}]}\n' \
         "$SETTINGS" > "$OUT/plugins-$NAME/plugins.json"
     MODS=(--plugins "$OUT/plugins-$NAME/plugins.json")
 fi

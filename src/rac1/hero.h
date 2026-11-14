@@ -4,8 +4,8 @@
  * seen in rac1-decomp's code (include/structs/hero.h, pad.h, moby.h and the functions DESIGN.md
  * cites); the one assumption is marked.
  */
-#ifndef RAC1_BETTER_MOVEMENT_HERO_H
-#define RAC1_BETTER_MOVEMENT_HERO_H
+#ifndef RAC1_ENHANCED_MOVEMENT_HERO_H
+#define RAC1_ENHANCED_MOVEMENT_HERO_H
 
 /* The hero (g_hero). */
 enum {
@@ -111,4 +111,4 @@ enum {
     BM_POSE_BODY = 1,
 };
 
-#endif /* RAC1_BETTER_MOVEMENT_HERO_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_HERO_H */

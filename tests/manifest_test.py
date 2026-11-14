@@ -81,7 +81,8 @@ def main() -> int:
            f"hooks {sorted(manifest['hooks'])} against game.cpp's {sorted(HOOK_IDS[t] for t in taken if t in HOOK_IDS)}")
 
     # The conflict with lock-strafe, and the multiplayer kind.
-    expect([c["id"] for c in manifest.get("conflicts", [])] == ["lock-strafe"], "conflicts with lock-strafe")
+    expect([c["id"] for c in manifest.get("conflicts", [])] == ["lock-strafe", "rac1-better-movement"],
+           "conflicts with lock-strafe and with the mod's old id")
     expect(manifest.get("multiplayer") == "input", "multiplayer is input")
 
     for error in errors:

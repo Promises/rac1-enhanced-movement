@@ -1,4 +1,4 @@
-# Better movement (Going Commando)
+# Enhanced movement (Going Commando)
 
 Ratchet moves as in **Ratchet & Clank: Going Commando**, in the first
 Ratchet & Clank on [OpenRAC](https://github.com/OpenRAC/OpenRAC)'s native port:
@@ -71,7 +71,7 @@ unchanged.
 | `strafe` | choice: `both`, `l2`, `r2`, `off` | `both` | the button held to strafe: L2 or R2, one of them, or no strafe |
 | `flips` | bool | on | X while strafing with the stick fully sideways or back flips that way |
 | `twist` | bool | on | strafing, his hips turn toward where he goes |
-| `trace` | bool | off | for bug reports: one line in the game's log each tick with what the mod decided and every input it used (`OPENRAC_BETTER_MOVEMENT_TRACE=1` in the environment does the same). Each player's own |
+| `trace` | bool | off | for bug reports: one line in the game's log each tick with what the mod decided and every input it used (`OPENRAC_ENHANCED_MOVEMENT_TRACE=1` in the environment does the same). Each player's own |
 
 Settings count from the game's next start. With everything off, the mod takes
 no hooks and the game plays exactly as the PlayStation 2's.
@@ -80,6 +80,7 @@ no hooks and the game plays exactly as the PlayStation 2's.
 
 - **lock-strafe** also strafes on L2/R2 and takes the same hook points. The
   manifest declares the conflict, so turn one of them off.
+- **rac1-better-movement** is this mod's old name (0.1.0 and 0.2.0): remove it.
 - **difficulty**: its *Ratchet speed* slider keeps working. Going Commando's
   speeds are scaled by it, in either load order.
 - The mod shares these hook points:
@@ -127,10 +128,10 @@ python3 tools/fetch_sdk.py                 # the SDK sdk.lock pins, into .sdk/
 cmake -S . -B build -G Ninja
 cmake --build build && ctest --test-dir build --output-on-failure
 python3 tools/cpp_style.py                 # layout (clang-format and the blank-line rules)
-python3 .sdk/openrac-mod-sdk-*/tools/package_mod.py build/package/rac1_better_movement -o dist
+python3 .sdk/openrac-mod-sdk-*/tools/package_mod.py build/package/rac1_enhanced_movement -o dist
 ```
 
-To try a build, add `build/package/rac1_better_movement` in the launcher's
+To try a build, add `build/package/rac1_enhanced_movement` in the launcher's
 **Mods** tab. `tools/playtest.sh` plays a scripted route in OpenRAC's port
 (hidden, against the game without the mod), and `tools/playtest_analyze.py`
 compares two runs. [PLAYTEST.md](PLAYTEST.md) has what they showed on every
@@ -141,6 +142,10 @@ against it.
 
 ## Notes
 
+- **0.2.1**: renamed from `rac1-better-movement` (its 0.1.0 and 0.2.0). The
+  launcher sees a new mod: remove the old one, then add this one
+  (`https://github.com/kmomoney/rac1-enhanced-movement`). The two are marked
+  as conflicting, so they never run together.
 - **0.2.0**: the PAL v2.00 disc, play-tested on it as on NTSC-U (PLAYTEST.md).
   The mod also follows the game's 50 Hz timing (rac2's numbers scaled as rac2's
   PAL release scales them, the first game's tick windows counted as it counts

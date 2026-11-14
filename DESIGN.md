@@ -1,4 +1,4 @@
-# rac1-better-movement: the design
+# rac1-enhanced-movement: the design
 
 How Ratchet & Clank: Going Commando (rac2) moves Ratchet, how Ratchet & Clank (rac1) does it, and
 how this mod makes rac1 do what rac2 does. Every row names its evidence:

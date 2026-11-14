@@ -8,8 +8,8 @@
  *   OpenRAC's port/game/rac1-ntsc/host/rac1_version.h, rac1-decomp's config/names_ntsc.tsv and
  *   config/overlays/us_map.tsv, and the NTSC decomp's own C (DESIGN.md section 5).
  */
-#ifndef RAC1_BETTER_MOVEMENT_DISCS_H
-#define RAC1_BETTER_MOVEMENT_DISCS_H
+#ifndef RAC1_ENHANCED_MOVEMENT_DISCS_H
+#define RAC1_ENHANCED_MOVEMENT_DISCS_H
 
 #include <stdint.h>
 
@@ -79,4 +79,4 @@ static const bm_disc k_bm_discs[] = {
     },
 };
 
-#endif /* RAC1_BETTER_MOVEMENT_DISCS_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_DISCS_H */

@@ -4,8 +4,8 @@
  * (rac1 writes them times g_frame_time or g_frame_time_sq). Each comes from rac1-decomp's C, named
  * beside it (PAL names; DESIGN.md sections 2 and 3).
  */
-#ifndef RAC1_BETTER_MOVEMENT_RAC1_H
-#define RAC1_BETTER_MOVEMENT_RAC1_H
+#ifndef RAC1_ENHANCED_MOVEMENT_RAC1_H
+#define RAC1_ENHANCED_MOVEMENT_RAC1_H
 
 /* hero_update_movement, the run: speed_step(7.5 * k, 8.5), and 17 down with the turnaround. */
 #define RAC1_RUN_BRAKE 8.5f
@@ -65,4 +65,4 @@ enum {
     RAC1_MODE_CROUCH = 0xC,
 };
 
-#endif /* RAC1_BETTER_MOVEMENT_RAC1_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_RAC1_H */

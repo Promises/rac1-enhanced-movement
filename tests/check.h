@@ -3,8 +3,8 @@
  * The decision tests' checks: each failure prints its line and both values, and main returns the
  * count of failures (CTest fails on anything but 0).
  */
-#ifndef RAC1_BETTER_MOVEMENT_CHECK_H
-#define RAC1_BETTER_MOVEMENT_CHECK_H
+#ifndef RAC1_ENHANCED_MOVEMENT_CHECK_H
+#define RAC1_ENHANCED_MOVEMENT_CHECK_H
 
 #include <math.h>
 #include <stdio.h>
@@ -43,4 +43,4 @@ static int g_failures;
         return g_failures;                                                                         \
     } while (0)
 
-#endif /* RAC1_BETTER_MOVEMENT_CHECK_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_CHECK_H */

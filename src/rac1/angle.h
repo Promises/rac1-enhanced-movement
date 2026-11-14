@@ -4,8 +4,8 @@
  * (rac1's FastSubRots / FastDiffRots, rac2's func_00283BE0 / func_00283C80), and ApproachValue
  * (rac1's and rac2's func_002AA2E8: a value moved toward a target by at most a step, never past it).
  */
-#ifndef RAC1_BETTER_MOVEMENT_ANGLE_H
-#define RAC1_BETTER_MOVEMENT_ANGLE_H
+#ifndef RAC1_ENHANCED_MOVEMENT_ANGLE_H
+#define RAC1_ENHANCED_MOVEMENT_ANGLE_H
 
 #include <math.h>
 
@@ -58,4 +58,4 @@ static inline float bm_clamp(float x, float lo, float hi) {
     return x < lo ? lo : (x > hi ? hi : x);
 }
 
-#endif /* RAC1_BETTER_MOVEMENT_ANGLE_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_ANGLE_H */

@@ -1,4 +1,4 @@
-# rac1-better-movement: the plan
+# rac1-enhanced-movement: the plan
 
 A native OpenRAC mod that gives Ratchet in Ratchet & Clank (rac1) the movement of Ratchet & Clank:
 Going Commando (rac2), built as `openrac-mods/docs/GUIDE.md` describes. This file is the plan
@@ -16,8 +16,9 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | 3. Game layer and load test | Done: `game.cpp`, `load`, `manifest` tests |
 | 4. Build and checks | Done: 6 of 6 tests, style clean, `package_mod.py --check` ok, README |
 | 5. Play-testing on NTSC-U | Done by script in OpenRAC's port on the NTSC-U disc data (PLAYTEST.md, `tools/playtest.sh`): Veldin, Novalis and Kerwan against the game without the mod, every setting off identical to no mod, jump heights and L1/R1 unchanged, the heli-pack, the hip twist's joints confirmed in pictures, a smoke run of every level. Left for a person: the places the routes do not reach (PLAYTEST.md, last section) |
-| 6. Release | Done on your go-ahead (commit, push, tag; no index listing): github.com/kmomoney/rac1-better-movement, tag `rac1-better-movement-v0.1.0`. CI built and tested every platform (Linux x86-64 and AArch64, Windows, macOS arm64 and x86-64, Android) and published the release with `SHA256SUMS`. Listing it in the openrac-mods index (`index/rac1-better-movement.json`) is left for when you want it |
-| 7. PAL v2.00 (0.2.0) | Done on your request: the PAL row (DESIGN.md section 5), rac1's tick windows counted as `scale_ticks` counts them, the load test on both discs and at PAL's 50 Hz, the play-test on the PAL disc (PLAYTEST.md); released as 0.2.0 |
+| 6. Release | Done on your go-ahead (commit, push, tag; no index listing): github.com/kmomoney/rac1-better-movement (since renamed), tag `rac1-better-movement-v0.1.0`. CI built and tested every platform (Linux x86-64 and AArch64, Windows, macOS arm64 and x86-64, Android) and published the release with `SHA256SUMS`. Listing it in the openrac-mods index (`index/rac1-enhanced-movement.json`) is left for when you want it |
+| 7. PAL v2.00 (0.2.0) | Done on your request: the PAL row (DESIGN.md section 5), rac1's tick windows counted as `scale_ticks` counts them, the load test on both discs and at PAL's 50 Hz, the play-test on the PAL disc (PLAYTEST.md); released as 0.2.0 (tag `rac1-better-movement-v0.2.0`) |
+| 8. Renamed (0.2.1) | On your request: the repository, folder, id, name, library and tags are `rac1-enhanced-movement` (github.com/kmomoney/rac1-enhanced-movement; GitHub redirects the old address). The 0.1.0 and 0.2.0 releases keep their old names. The manifest conflicts with the old id, so an old copy must be removed before the new one runs |
 
 ## 1. Decisions
 
@@ -28,8 +29,8 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | Hook points | The SDK's existing ones only. No OpenRAC change |
 | Discs | NTSC-U (`ntsc`, SCUS-97199) only, the disc that could be play-tested. **0.2.0 adds PAL v2.00 (`pal`, SCES-50916)**, once you had its disc, to match the other rac1 mods (`pal` and `ntsc`) |
 | Strafe | Written for this mod from the decompilations. No code or tests are taken from `lock-strafe`. Both mods take L2/R2 and the same hook points, so the manifest declares `"conflicts": ["lock-strafe"]` |
-| Repository | `~/Projects/rac1-better-movement`, its own git repository, started from OpenRAC's `sdk/template`. Nothing is pushed or tagged without asking |
-| Id | `rac1-better-movement`, version `0.1.0` |
+| Repository | `~/Projects/rac1-enhanced-movement`, its own git repository, started from OpenRAC's `sdk/template`. Nothing is pushed or tagged without asking |
+| Id | `rac1-enhanced-movement`, version `0.1.0` |
 | Multiplayer | `"input"`: it changes how one player's Ratchet moves, not the world or its rules |
 
 What the research found about two of the scope items:
@@ -216,7 +217,7 @@ Rules every hook follows:
 ## 5. Repository layout
 
 ```
-rac1-better-movement/
+rac1-enhanced-movement/
 ├── PLAN.md                this file
 ├── openrac-mod.json       the manifest
 ├── README.md              for players: what changes, each setting, known limits
@@ -263,7 +264,7 @@ is for and where its facts come from.
 | `strafe` | choice: `both`, `l2`, `r2`, `off` | `both` | Hold L2 or R2 (or only one, leaving the other to the game) to strafe as in Going Commando |
 | `flips` | bool | true | Strafing, X with the stick pushed fully sideways or back flips that way |
 | `twist` | bool | true | Strafing, his hips turn toward where he goes |
-| `trace` | bool, `multiplayer: "own"` | false | A log line per tick with every input each decision used. `OPENRAC_BETTER_MOVEMENT_TRACE=1` does the same |
+| `trace` | bool, `multiplayer: "own"` | false | A log line per tick with every input each decision used. `OPENRAC_ENHANCED_MOVEMENT_TRACE=1` does the same |
 
 The defaults are the recommended experience. With everything off, the mod takes no hooks. One log line
 at load says the disc and each setting.
@@ -272,8 +273,8 @@ at load says the disc and each setting.
 
 ### Phase 0: repository
 
-1. `git init` in `~/Projects/rac1-better-movement` and copy `OpenRAC/sdk/template`.
-   - Rename the target to `rac1_better_movement` and the id to `rac1-better-movement`.
+1. `git init` in `~/Projects/rac1-enhanced-movement` and copy `OpenRAC/sdk/template`.
+   - Rename the target to `rac1_enhanced_movement` and the id to `rac1-enhanced-movement`.
    - Add LICENSE, `.clang-format`, `.gitignore`.
 2. Fetch the SDK (`python3 tools/fetch_sdk.py`), or point at `../OpenRAC/sdk`. Configure and build the
    empty mod.
@@ -356,7 +357,7 @@ to the README's limits with the reason), and `tools/rac2_constants.py` has extra
 
    Built with `-ffp-contract=off`.
 
-Done when `ctest -R rac1_better_movement` passes.
+Done when `ctest -R rac1_enhanced_movement` passes.
 
 ### Phase 3: the game layer, with the load test
 
@@ -397,7 +398,7 @@ with lock-strafe.
 
 ### Phase 5: play-testing on NTSC-U (you)
 
-Install `build/package/rac1_better_movement` from the launcher's Mods tab with `trace` on. The list:
+Install `build/package/rac1_enhanced_movement` from the launcher's Mods tab with `trace` on. The list:
 
 - **Veldin** (family A), **Novalis** (B), **Kerwan** (C):
   - starting from standstill in every direction;
@@ -438,8 +439,8 @@ Each problem comes back as a trace excerpt, which becomes a test before it is fi
 ### Phase 6: release (only when asked)
 
 Bump `version` in the manifest and `version.h` together, write the README notes, and commit as
-`feat(rac1-better-movement): ...`. Tagging `rac1-better-movement-v0.1.0` and listing the mod in the
-openrac-mods index (`index/rac1-better-movement.json`, `aiAssisted: true`) wait for your go-ahead.
+`feat(rac1-enhanced-movement): ...`. Tagging `rac1-enhanced-movement-v0.1.0` and listing the mod in the
+openrac-mods index (`index/rac1-enhanced-movement.json`, `aiAssisted: true`) wait for your go-ahead.
 
 ## 8. Risks and limits
 

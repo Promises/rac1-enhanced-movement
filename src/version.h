@@ -3,10 +3,10 @@
  * The mod's id and version, the manifest's (openrac-mod.json): the port refuses a library whose
  * openrac_mod_query disagrees with them. src/mod.cpp and the load test read them from here.
  */
-#ifndef RAC1_BETTER_MOVEMENT_VERSION_H
-#define RAC1_BETTER_MOVEMENT_VERSION_H
+#ifndef RAC1_ENHANCED_MOVEMENT_VERSION_H
+#define RAC1_ENHANCED_MOVEMENT_VERSION_H
 
-#define RAC1_BETTER_MOVEMENT_ID "rac1-better-movement"
-#define RAC1_BETTER_MOVEMENT_VERSION "0.2.0"
+#define RAC1_ENHANCED_MOVEMENT_ID "rac1-enhanced-movement"
+#define RAC1_ENHANCED_MOVEMENT_VERSION "0.2.1"
 
-#endif /* RAC1_BETTER_MOVEMENT_VERSION_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_VERSION_H */

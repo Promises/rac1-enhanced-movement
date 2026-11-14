@@ -5,7 +5,7 @@
  * game memory laid out at src/rac1/discs.h's NTSC addresses, with the game's own code standing in as
  * counting stubs.
  *
- *     rac1_better_movement_load_test <path to the library>
+ *     rac1_enhanced_movement_load_test <path to the library>
  */
 #include <math.h>
 #include <stdint.h>
@@ -838,8 +838,8 @@ int main(int argc, char** argv) {
     // The query: the manifest's id, version and api (1.0).
     info.size = sizeof info;
     query(&info);
-    CHECK_EQ(strcmp(info.id, RAC1_BETTER_MOVEMENT_ID), 0);
-    CHECK_EQ(strcmp(info.version, RAC1_BETTER_MOVEMENT_VERSION), 0);
+    CHECK_EQ(strcmp(info.id, RAC1_ENHANCED_MOVEMENT_ID), 0);
+    CHECK_EQ(strcmp(info.version, RAC1_ENHANCED_MOVEMENT_VERSION), 0);
     CHECK_EQ(info.api_major, 1);
     CHECK_EQ(info.api_minor, 0);
 

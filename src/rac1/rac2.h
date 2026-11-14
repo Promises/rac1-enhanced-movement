@@ -8,8 +8,8 @@
  * Every RAC2_ literal is also a row of tests/data/rac2_constants.tsv, which tools/rac2_constants.py
  * reads out of rac2-decomp with its file and line; tests/rac2_constants_test.py checks the two agree.
  */
-#ifndef RAC1_BETTER_MOVEMENT_RAC2_H
-#define RAC1_BETTER_MOVEMENT_RAC2_H
+#ifndef RAC1_ENHANCED_MOVEMENT_RAC2_H
+#define RAC1_ENHANCED_MOVEMENT_RAC2_H
 
 /* --- The run (func_L00_002BA7D8 case 2 and 0x70, func_L00_002B3D10) ------------------------- */
 
@@ -155,4 +155,4 @@ static inline bm_tick bm_tick_pal(void) {
     return t;
 }
 
-#endif /* RAC1_BETTER_MOVEMENT_RAC2_H */
+#endif /* RAC1_ENHANCED_MOVEMENT_RAC2_H */
