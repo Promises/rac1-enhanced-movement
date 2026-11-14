@@ -3,19 +3,33 @@
 """Going Commando's movement numbers, read out of rac2-decomp, into tests/data/rac2_constants.tsv.
 
     python3 tools/rac2_constants.py [--decomp ../rac2-decomp] [--lit <level 0's lit.bin>]
+                                    [--data <level 0's data.bin>]
 
 Each constant src/rac1/rac2.h uses is a literal of rac2-decomp's C (USA v1.01, level 0's shared hero
-code), found here by a pattern in its file. The table records the literal as written and where it is,
-and tests/rac2_constants_test.py checks rac2.h against it, so a typo in rac2.h fails the build's
-tests. The run speed is not a literal but level data (D_001A7DB0[4], read by func_L00_002B3D10):
-with --lit (a level 0 lit.bin from rac2-decomp's `tools/levels.py dump`, whose section starts at
-0x1A7C80) it is read from there; without, the row the table already has is kept.
+code), found here by a pattern in its file: a float, or a count of ticks or polls (an integer). The
+table records the literal as written and where it is, and tests/rac2_constants_test.py checks rac2.h
+against it, so a typo in rac2.h fails the build's tests.
 
-Numbers only: nothing of the game's own bytes goes into the table but the one float it names.
+Three kinds of number are level data, not literals:
+- the run speed (D_001A7DB0[4], read by func_L00_002B3D10): with --lit (a level 0 lit.bin from
+  rac2-decomp's `tools/levels.py dump`, whose section starts at 0x1A7C80) it is read from there;
+- the follow camera's (its speed table D_L00_001B15B8, read by func_L00_004263B8; the pitch steps
+  func_L00_00425118 reads, the eye's springs func_L00_00425CD0 reads): with --lit too, at the v2.00
+  disc's addresses (func_L00_004263B8's `addiu $a1, $gp, 0x2568` with $gp 0x1AEFF0, and the other
+  two's $gp loads), 0x60 below v1.01's;
+- the wrench's attack records (D_L00_0025D990, 0x2C bytes each, read by func_L00_002C9448 and
+  func_L00_002CB3A8): with --data (that dump's level 0 data.bin, whose manifest.json beside it
+  gives the section's address) the frames of records 0 to 3 are read from there. The dumps this was
+  run on are of the v2.00 disc (`--version us2`), where the table is at 0x25D910
+  (func_L00_002C9448's lui/addiu at 0x2C9A5C/0x2C9A68), 0x80 below v1.01's.
+Without them, the rows the table already has are kept.
+
+Numbers only: nothing of the game's own bytes goes into the table but the numbers it names.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import struct
 import sys
@@ -36,8 +50,11 @@ AIR = SHARED + "L00_002B6BC8.c"
 POSE = SHARED + "L00_002B7B80.c"
 JUMP = SHARED + "L00_002C2DE8.c"
 TURNING = SHARED + "L00_002AFBC0.c"
+WRENCH = SHARED + "L00_002C9448-g8.c"
 
 F = r"(-?[0-9]+\.[0-9]+f?)"
+# A count: decimal, or hexadecimal as m2c writes some.
+I = r"(0x[0-9A-Fa-f]+|[0-9]+)"
 # |yaw error| as func_L00_002BA7D8 writes it.
 ERR = r"func_00282C48\(\(\(Hero \*\)D_00189E20\)->f\[0x1A8/4\]\)"
 
@@ -116,7 +133,49 @@ SPECS: list[tuple[str, str, str]] = [
     ("TWIST_HIP_ACCEL", POSE, r"->f\[0xA4 / 4\] = " + F),
     ("TWIST_BODY_ACCEL", POSE, r"->f\[0x154 / 4\] = " + F),
     ("TWIST_BODY_DAMP", POSE, r"->f\[0x158 / 4\] = " + F),
+    ("STRAFE_SIDE_TICKS", STRAFE, r"\*\(short \*\)\(p\+0x146e\)=" + I + r";"),
+    # The wrench: the lock-on turn of the swings (case 0x13) and the throw's (0x15), the slam's drive
+    # (0x14) (func_L00_002BA7D8).
+    ("WRENCH_TURN_ACCEL", STATE_MACHINE, r"func_L00_002B3EF8\(0, " + F + r", 0\.2f, 0\.2821616f\);\s*\} else \{\s*var_v1_3 = 1;"),
+    ("WRENCH_TURN_DAMP", STATE_MACHINE, r"func_L00_002B3EF8\(0, 0\.05f, " + F + r", 0\.2821616f\);\s*\} else \{\s*var_v1_3 = 1;"),
+    ("WRENCH_TURN_LIMIT", STATE_MACHINE, r"func_L00_002B3EF8\(0, 0\.05f, 0\.2f, " + F + r"\);\s*\} else \{\s*var_v1_3 = 1;"),
+    ("THROW_TURN_ACCEL", STATE_MACHINE, r"func_L00_002B3EF8\(1, " + F + r", 0\.2f, 0\.2821616f\)"),
+    ("SLAM_DRIVE_HEIGHT", STATE_MACHINE, r"f\[0x31C/4\] > " + F + r"\)\) \{\s*var_s1_2 = 1;"),
+    ("SLAM_DRIVE_TICKS", STATE_MACHINE, r"\(var_s1_2 != 0\) && \(\(\(Hero \*\)D_00189E20\)->i\[0x1B8/4\] < " + I + r"\)"),
+    ("SLAM_DRIVE", STATE_MACHINE, r"i\[0x1B8/4\] < 0x46\)\) \{\s*\(\(Hero \*\)D_00189E20\)->f\[0x1B0/4\] = " + F),
+    # Leaving a swing and the throw (func_L00_002CB3A8, cases 0x13 and 0x15).
+    ("THROW_RUN_FRAME", DECIDER, r"if \(\(FLD\(D_00189E20, f32, 0xC38\) > " + F + r"\) && \(FLD\(D_00189E20, f32, 0x24B8\) > [0-9.]+f\)\) \{\s*func_L00_002C42E0\(2, 0\);"),
+    ("THROW_RUN_STICK", DECIDER, r"0xC38\) > [0-9.]+f\) && \(FLD\(D_00189E20, f32, 0x24B8\) > " + F + r"\)\) \{\s*func_L00_002C42E0\(2, 0\);"),
+    ("RUN_OUT_STICK", DECIDER, r"if \(\(f32\)lim < h\) \{\s*if \(FLD\(D_00189E20, f32, 0x24B8\) > " + F),
+    ("EXIT_IDLE_FRAMES", DECIDER, r"if \(\(f32\)\(lim \+ " + I + r"\) < h\)"),
+    ("THROW_JUMP_WINDOW", DECIDER, r"if \(st == 0x15\) \{\s*frames = " + I + r";"),
+    # Square's windows (func_L00_002C9448): standing or running, and in a jump.
+    ("WRENCH_WINDOW", WRENCH, r"func_L00_0032EF10\(mask, " + I + r", &scratch\.input_age\)"),
+    ("WRENCH_AIR_WINDOW", WRENCH, r"buffered_window = " + I + r";\s*if \(D_00189E20\.mode == 11"),
+    ("WRENCH_AIR_LATE_WINDOW", WRENCH, r"D_00189E20\.mode == 14\)\s*buffered_window = " + I + r";"),
+    ("CHAIN_WINDOW", WRENCH, r"action = action < 16 \? action : " + I + r";"),
+    ("THROW_AGAIN_TICKS", WRENCH, r"D_00189E20\.mode == 21 && D_00189E20\.frame >= " + I + r"\)"),
 ]
+
+# The attack records' frames (level 0 data): name, record, byte offset in the 0x2C-byte record.
+RECORDS = [(f"REC{r}_{name}", r, off) for r in range(4)
+           for name, off in (("FIRST", 0xC), ("OPEN", 0x10), ("JUMP", 0x14), ("EXIT", 0x18))]
+RECORD_TABLE = 0x25D910  # D_L00_0025D990 on v1.01, 0x80 lower on v2.00 (the dumps')
+
+# The follow camera's numbers (level 0's lit): name, v2.00 address, the v1.01 name rac2-decomp gives.
+CAMERA = [
+    ("CAMERA_SPEED_SLOW", 0x1B1558, "D_L00_001B15B8[0]"),
+    ("CAMERA_SPEED_MEDIUM", 0x1B155C, "D_L00_001B15B8[1]"),
+    ("CAMERA_SPEED_FAST", 0x1B1560, "D_L00_001B15B8[2]"),
+    ("CAMERA_PITCH_TRACKING", 0x1B1458, "D_L00_001B14B8"),
+    ("CAMERA_PITCH_RETURN", 0x1B145C, "D_L00_001B14BC"),
+    ("CAMERA_PITCH_STEP", 0x1B1460, "D_L00_001B14C0"),
+    ("CAMERA_YAW_SPRING_ACCEL", 0x1B1488, "D_L00_001B14E8"),
+    ("CAMERA_YAW_SPRING_DAMP", 0x1B148C, "D_L00_001B14EC"),
+    ("CAMERA_PITCH_SPRING_ACCEL", 0x1B1490, "D_L00_001B14F0"),
+    ("CAMERA_PITCH_SPRING_DAMP", 0x1B1494, "D_L00_001B14F4"),
+]
+LIT_BASE = 0x1A7C80
 
 
 def extract(decomp: Path) -> list[tuple[str, str, str]]:
@@ -155,13 +214,87 @@ def run_speed(lit: Path | None) -> tuple[str, str, str]:
     sys.exit("no RUN_SPEED: pass --lit <level 0 lit.bin>")
 
 
+def shortest(value: float) -> str:
+    """A float32 as the shortest literal that reads back as the same float32, with its f."""
+    for digits in range(1, 10):
+        text = f"{value:.{digits}g}"
+
+        if struct.unpack("<f", struct.pack("<f", float(text)))[0] == value:
+            return text + "f"
+
+    return f"{value:.9g}f"
+
+
+def kept_rows(names: list[str], flag: str) -> list[tuple[str, str, str]]:
+    """The table's rows of these names, or an error asking for the dump they come from."""
+    kept = {}
+
+    for line in TABLE.read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith("#"):
+            name, literal, source = line.split("\t")
+            kept[name] = (name, literal, source)
+
+    missing = [name for name in names if name not in kept]
+
+    if missing:
+        sys.exit("no " + ", ".join(missing) + f": pass {flag}")
+
+    return [kept[name] for name in names]
+
+
+def camera(lit: Path | None) -> list[tuple[str, str, str]]:
+    """The follow camera's numbers from a level 0 lit.bin (section at 0x1A7C80), or the table's rows."""
+    if lit is None:
+        return kept_rows([name for name, _, _ in CAMERA], "--lit <level 0 lit.bin>")
+
+    raw = lit.read_bytes()
+    rows = []
+
+    for name, at, v101 in CAMERA:
+        value = struct.unpack_from("<f", raw, at - LIT_BASE)[0]
+        rows.append((name, shortest(value), f"level 0 data {v101} (v2.00 {at:#x})"))
+
+    return rows
+
+
+def attack_records(data: Path | None) -> list[tuple[str, str, str]]:
+    """Records 0 to 3's frames from a level 0 data.bin (its manifest.json beside it), or the table's rows."""
+    if data is not None:
+        manifest = json.loads((data.parent / "manifest.json").read_text(encoding="utf-8"))
+        base = next(s["address"] for s in manifest["sections"] if s["name"] == "data")
+        raw = data.read_bytes()
+        rows = []
+
+        for name, record, offset in RECORDS:
+            at = RECORD_TABLE + record * 0x2C + offset
+            value = struct.unpack_from("<i", raw, at - base)[0]
+            rows.append((name, str(value), f"level 0 data D_L00_0025D990[{record}]+{offset:#x} (v2.00 {at:#x})"))
+
+        return rows
+
+    kept = {}
+
+    for line in TABLE.read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith("#"):
+            name, literal, source = line.split("\t")
+            kept[name] = (name, literal, source)
+
+    missing = [name for name, _, _ in RECORDS if name not in kept]
+
+    if missing:
+        sys.exit("no " + ", ".join(missing) + ": pass --data <level 0 data.bin>")
+
+    return [kept[name] for name, _, _ in RECORDS]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--decomp", type=Path, default=ROOT.parent / "rac2-decomp")
     parser.add_argument("--lit", type=Path, help="level 0's lit.bin, for the run speed")
+    parser.add_argument("--data", type=Path, help="level 0's data.bin, for the attack records")
     args = parser.parse_args()
 
-    rows = [run_speed(args.lit)] + extract(args.decomp)
+    rows = [run_speed(args.lit)] + extract(args.decomp) + attack_records(args.data) + camera(args.lit)
     TABLE.parent.mkdir(parents=True, exist_ok=True)
     with TABLE.open("w", encoding="utf-8", newline="\n") as out:
         out.write("# name\tliteral\tsource (written by tools/rac2_constants.py)\n")

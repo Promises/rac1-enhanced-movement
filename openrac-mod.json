@@ -2,9 +2,9 @@
   "format": 2,
   "id": "rac1-enhanced-movement",
   "name": "Enhanced movement (Going Commando)",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "author": "kmomoney",
-  "description": "Ratchet moves as in Ratchet & Clank: Going Commando: his speed follows how far the stick is pushed, he gets going and stops quicker and turns as in the second game, with its turnaround and no skid when you let go; more control in the air; and Going Commando's strafe on L2 or R2, with its side and back flips and hip twist. Jump heights stay the first game's, so every level plays as built.",
+  "description": "Ratchet moves as in Ratchet & Clank: Going Commando: his speed follows how far the stick is pushed, he gets going and stops quicker and turns as in the second game, with its turnaround and no skid when you let go; more control in the air; Going Commando's strafe on L2 or R2, with its side and back flips and hip twist; Going Commando's wrench timing; and a choice of camera turn speed: the first game's, Going Commando's or a modern one three times as fast. Jump heights and wrench damage stay the first game's, so every level plays as built.",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/kmomoney/rac1-enhanced-movement",
   "api": "1.0",
@@ -87,6 +87,34 @@
       "type": "bool",
       "default": true,
       "description": "Strafing, Ratchet's hips turn toward where he goes while his upper body keeps facing ahead."
+    },
+    {
+      "key": "wrench",
+      "name": "Going Commando wrench",
+      "type": "bool",
+      "default": true,
+      "description": "The wrench handles as in Going Commando: Square is remembered a little longer, the lock-on turn is quicker, you can run or jump out of a swing sooner and move on while a thrown wrench flies, and the slam keeps its drive from high up. Damage stays the first game's."
+    },
+    {
+      "key": "camera",
+      "name": "Camera rotation",
+      "type": "choice",
+      "default": "rac2",
+      "choices": [
+        {
+          "value": "rac1",
+          "name": "Ratchet & Clank"
+        },
+        {
+          "value": "rac2",
+          "name": "Going Commando"
+        },
+        {
+          "value": "modern",
+          "name": "Modern (3x)"
+        }
+      ],
+      "description": "How fast the right stick turns the camera behind Ratchet. Going Commando's is its fastest camera, 132 degrees a second whatever the game's own camera speed (the first game turns 78 by default, 96 at its fastest). Modern turns three times as fast as the game's speed (234 degrees a second by default), pitches three times as fast, and follows the stick closely. First person stays the game's."
     },
     {
       "key": "trace",

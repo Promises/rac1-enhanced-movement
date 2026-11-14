@@ -6,7 +6,7 @@ for carrying it out: what was decided, what the mod changes, how it is built, an
 of the work. Research done so far is summarised here. Everything still open is listed in
 Phase 1, and the finished evidence goes to `DESIGN.md`.
 
-## Status (2026-11-12)
+## Status (2026-11-14)
 
 | Phase | State |
 |---|---|
@@ -17,8 +17,10 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | 4. Build and checks | Done: 6 of 6 tests, style clean, `package_mod.py --check` ok, README |
 | 5. Play-testing on NTSC-U | Done by script in OpenRAC's port on the NTSC-U disc data (PLAYTEST.md, `tools/playtest.sh`): Veldin, Novalis and Kerwan against the game without the mod, every setting off identical to no mod, jump heights and L1/R1 unchanged, the heli-pack, the hip twist's joints confirmed in pictures, a smoke run of every level. Left for a person: the places the routes do not reach (PLAYTEST.md, last section) |
 | 6. Release | Done on your go-ahead (commit, push, tag; no index listing): github.com/kmomoney/rac1-better-movement (since renamed), tag `rac1-better-movement-v0.1.0`. CI built and tested every platform (Linux x86-64 and AArch64, Windows, macOS arm64 and x86-64, Android) and published the release with `SHA256SUMS`. Listing it in the openrac-mods index (`index/rac1-enhanced-movement.json`) is left for when you want it |
-| 7. PAL v2.00 (0.2.0) | Done on your request: the PAL row (DESIGN.md section 5), rac1's tick windows counted as `scale_ticks` counts them, the load test on both discs and at PAL's 50 Hz, the play-test on the PAL disc (PLAYTEST.md); released as 0.2.0 (tag `rac1-better-movement-v0.2.0`) |
+| 7. PAL v2.00 (0.2.0) | Done on your request: the PAL row (DESIGN.md section 6, section 5 before 0.3.0), rac1's tick windows counted as `scale_ticks` counts them, the load test on both discs and at PAL's 50 Hz, the play-test on the PAL disc (PLAYTEST.md); released as 0.2.0 (tag `rac1-better-movement-v0.2.0`) |
 | 8. Renamed (0.2.1) | On your request: the repository, folder, id, name, library and tags are `rac1-enhanced-movement` (github.com/kmomoney/rac1-enhanced-movement; GitHub redirects the old address). The 0.1.0 and 0.2.0 releases keep their old names. The manifest conflicts with the old id, so an old copy must be removed before the new one runs |
+| 9. Wrench (0.3.0) | Done on your request, released as 0.3.0 (tag `rac1-enhanced-movement-v0.3.0`): Going Commando's wrench timing (section 9 below, DESIGN.md section 5), the `wrench` setting, `wrench.h` and its test, the load test on both discs, 34 more rows in `rac2_constants.tsv` (the attack records read from the v2.00 disc's level 0 data), the play-test against Going Commando itself in OpenRAC's rac2 port and on both rac1 discs (PLAYTEST.md). The movement route plays tick for tick as 0.2.1 did |
+| 10. Camera (0.3.0) | Done on your request, released as 0.3.0 (tag `rac1-enhanced-movement-v0.3.0`): the `camera` setting (`rac1`, `rac2`, `modern`; section 10 below, DESIGN.md section 8), `camera.h` and its test, the load test on both discs and at 50 Hz, 10 more rows in `rac2_constants.tsv` (read from the v2.00 disc's level 0 data), the play-test on both rac1 discs against Going Commando in OpenRAC's rac2 port (PLAYTEST.md). `rac2` is Going Commando's fastest turn on every step, your choice (section 10). With `rac1` every route plays tick for tick as before, and with `rac2` until the right stick turns the camera. 0.3.0 is the wrench and the camera together |
 
 ## 1. Decisions
 
@@ -32,6 +34,8 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | Repository | `~/Projects/rac1-enhanced-movement`, its own git repository, started from OpenRAC's `sdk/template`. Nothing is pushed or tagged without asking |
 | Id | `rac1-enhanced-movement`, version `0.1.0` |
 | Multiplayer | `"input"`: it changes how one player's Ratchet moves, not the world or its rules |
+| Wrench (0.3.0) | Part of Ratchet's movement: rac2's timing, windows, way out of a swing and lock-on turn. **Damage and hit windows stay rac1's**, for the same reason as the jump heights: rac1's enemies and bosses are balanced around them. Where unclear, the choice that keeps rac1 as beatable (section 9) |
+| Camera (0.3.0) | One `camera` choice: `rac1` (the game's), `rac2` (Going Commando's fastest turn, 132 degrees a second on every step of the game's camera speed, the default like the mod's other Going Commando parts), `modern` (faster than both). Turn speed and feel only; the follow camera's other behaviour stays rac1's (section 10) |
 
 What the research found about two of the scope items:
 
@@ -185,9 +189,12 @@ hooks reach every level:
 | `rac1.player.turn_to_heading` | rac2's turn for the run, turnaround, first tick, strafe facing (move yaw swapped to the camera's around the call, as rac2 does) and the strafe in the air |
 | `rac1.player.approach_speed` | rac2's target speed, written to `+0x190` before the call, and its acceleration and braking for the run, idle group, STOP and crouch; the side-reversal factor while strafing |
 | `rac1.player.set_planar_velocity` | Along the stick: starting, after letting go (the last stick direction), and strafing |
-| `rac1.pad.process_report` | Takes L2/R2 out for the strafe, and keeps them for it |
-| `rac1.camera.follow.apply_overrides` | The strafe camera requests |
-| `rac1.player.advance_animation` | The backpedal (walk or run played backwards) |
+| `rac1.pad.process_report` | Takes L2/R2 out for the strafe, and keeps them for it; puts back the press history the flips and the wrench steered, and the camera's words |
+| `rac1.camera.follow.apply_overrides` | The strafe camera requests; the camera turn's speed for the rest of the camera's update (0.3.0, section 10) |
+| `rac1.player.advance_animation` | The backpedal (walk or run played backwards); puts back the hero's steered fields |
+
+The wrench (0.3.0, section 9) uses the same hook points: the post-step of `update_motion_input`
+for its steers, `turn_to_heading` for the lock-on turn, `approach_speed` for the slam's drive.
 
 Rules every hook follows:
 
@@ -237,10 +244,13 @@ rac1-enhanced-movement/
 │       ├── ground.h       run, stop, turn and exit decisions: plain C, no game memory
 │       ├── air.h          jump-entry adjustments
 │       ├── strafe.h       sectors, side timers, flip test, twist angles, backpedal
+│       ├── wrench.h       the swings' steers, Square's windows, the lock-on turn (0.3.0)
+│       ├── camera.h       the camera turn's gain, pitch steps and spring (0.3.0)
 │       ├── game.h
 │       └── game.cpp       load(), the hooks, reading and writing game memory
 ├── tests/
-│   ├── ground_test.c, air_test.c, strafe_test.c   the decisions, values worked out by hand
+│   ├── ground_test.c, air_test.c, strafe_test.c, wrench_test.c, camera_test.c
+│   │                      the decisions, values worked out by hand
 │   ├── load_test.c        the built library loaded as the port loads it
 │   ├── manifest_test.py   settings keys, types and defaults against the code
 │   └── data/rac2_constants.tsv   rac2's literals, extracted by tools/
@@ -264,9 +274,12 @@ is for and where its facts come from.
 | `strafe` | choice: `both`, `l2`, `r2`, `off` | `both` | Hold L2 or R2 (or only one, leaving the other to the game) to strafe as in Going Commando |
 | `flips` | bool | true | Strafing, X with the stick pushed fully sideways or back flips that way |
 | `twist` | bool | true | Strafing, his hips turn toward where he goes |
+| `wrench` | bool | true | Going Commando's wrench timing (0.3.0, section 9); damage stays the first game's |
+| `camera` | choice: `rac1`, `rac2`, `modern` | `rac2` | How fast the right stick turns the camera (0.3.0, section 10): the first game's, Going Commando's fastest, or three times the game's speed with the eye held close |
 | `trace` | bool, `multiplayer: "own"` | false | A log line per tick with every input each decision used. `OPENRAC_ENHANCED_MOVEMENT_TRACE=1` does the same |
 
-The defaults are the recommended experience. With everything off, the mod takes no hooks. One log line
+The defaults are the recommended experience. With everything off and `camera` at `rac1`, the mod
+takes no hooks. One log line
 at load says the disc and each setting.
 
 ## 7. Phases
@@ -460,3 +473,143 @@ openrac-mods index (`index/rac1-enhanced-movement.json`, `aiAssisted: true`) wai
     `hero_integrate_velocity`).
 - **Other mods** on the same hook points (`difficulty-mod` on `approach_speed`) are expected to
   compose by the ratio rule. lock-strafe is declared a conflict.
+
+## 9. The wrench (setting `wrench`, 0.3.0)
+
+rac2's wrench, researched from both decompilations (DESIGN.md section 5), turned out to be rac1's
+code carried on: the same three states (combo 0x13, slam 0x14, throw 0x15), the same movement in
+them, the same hits. What changes is timing. The mod ports what changes, and keeps what decides how
+hard rac1's levels are.
+
+| | rac1 → rac2 | The mod |
+|---|---|---|
+| Square's window, standing or running | 7 → 10 polls | ports it: a Square rac2 would still take is shown to rac1 as pressed this poll |
+| Square's window in a jump (the slam, or a swing near the ground) | 10 → 14 polls | ports it, the same way |
+| The first swing chains the second | from frame 26 → 25 | ports it: rac1 sees frame 26 for the tick |
+| Leaving a swing with the stick pushed (past 0.8) | idle at frame 31 / 23 / 21 → the run at 26 / 15 / 21 | ports it: rac1 sees its exit frame for the tick, stands, and its idle runs on the next tick |
+| Leaving a swing without the stick | idle at 31 / 23 / 21 → 31 / 20 / 26 (or the animation's end) | ports it: an earlier exit as above; a later one by holding rac1's exit for the tick |
+| The throw (crouch + Square): moving on while the wrench flies | stuck until the catch (frame 91) → the run past frame 34 with the stick past 0.9, X jumps out from frame 35 | ports both |
+| No Square while the wrench is out | rac1 still slams, or throws again from the crouch → nothing | ports it: Square is hidden from rac1 while the wrench is out |
+| The lock-on turn (swings, slam, throw) | 15.01 → 16.93 rad/s; the throw's accel 0.05 → 0.057 | ports it in `turn_to_heading` |
+| The slam from more than 4 above the ground | slows to a stop → keeps driving at 4.5 u/s | ports it in `approach_speed` |
+| Damage, hit frames, the wrench's flight and reach | the same in both games | rac1's (nothing to port) |
+
+Decided on the line between feel and balance:
+- **Damage stays rac1's**, and the mod changes no hit: rac1's enemies and bosses are balanced around
+  rac1's hits, so rac2's hit code (in the wrench's moby update) is not ported.
+- **The faster exits and the throw's freedom** are rac2's timing. They let the player move and
+  jump sooner, but never make a hit land sooner, harder or farther. rac2's slower exits (the third
+  swing standing until 26) are ported too, so the combo is not quicker overall than rac2's (the
+  play-test's three swings: 96 ticks in rac2 and with the mod, 88 in rac1).
+- **The throw stays R1 + Square.** rac2 dropped R2 for it because R2 strafes. With the strafe on R2
+  (the default) that is already so; with `strafe` set to `l2` or `off`, R2 stays rac1's crouch, so
+  its throw stays too.
+
+Left out, with the reason (README, known limits):
+- **The combo continuing through a short run** (rac2 keeps the next swing if the combo was the state
+  before the last and both lasted under 27 ticks). rac1 picks the next swing inside
+  `HeroEnterMoveState` from its previous control mode, and no hook point sits in the state entry.
+  Faking the mode for a tick would also turn rac1's item code down its attack branch.
+- **The thrown wrench's flight details** (it carries 0.98 of his momentum where rac1 carries 0.7 of
+  his velocity, and drops back to his hand past 32 units). Both are inside the wrench's own update.
+  The only hook point there is `rac1.moby.wrench.update`, which the SDK marks experimental, and
+  standing still the flights are the same.
+- **The slam's ground flags** (rac2 also drives on three ground types). rac1's matching bytes are
+  unnamed, so the mapping would be a guess.
+- **The swings' ledge test** (rac2 probes 0.35 down, rac1 0.2). It is inside
+  `stop_hero_motion_without_forward_support`, which no hook point reaches.
+
+How: no new hook point and no game function called. The post-step of `update_motion_input`
+works out what rac2's input code and decider would do this tick and what rac1's will do
+(`src/rac1/wrench.h`). Where they differ it sets, for the transitions only:
+- the animation's frame (`+0xAA8`), or the blend flag (`+0xA9C`) that makes rac1 hold the swing;
+- Square in, or Square and X out of, the pad's press history.
+
+It puts the hero's fields back in `advance_animation` and the pad's in `process_report`.
+`turn_to_heading` gives the lock-on turn, `approach_speed` the slam's drive.
+
+Other mods: **wrench-throw** (openrac-mods index) also takes R2 on foot and throws from
+`rac1.player.update`. It runs beside this mod when the strafe is set to L2 only, so the manifest
+declares no conflict, and the README says to set L2 (DESIGN.md section 7).
+
+Risks:
+- The swings are steered through `anim_frame`. Between the transitions and the next tick, the
+  wrench's hit test reads it, and so does the timed-events code, which only reads it for the walk
+  and run. The steered frames are past every hit window, so nothing hits early or twice.
+- The run out of a swing is one tick later than rac2's (rac1's idle, then its run).
+- Running or jumping while the wrench flies is new to rac1's throw, not to its code: the
+  first-person throw already does it. The play-test ran and jumped with the wrench out on both discs.
+- At 50 Hz both games' Square windows are the same length, so nothing is buffered there. OpenRAC
+  runs PAL at 60 Hz, so only the tests run that path.
+
+## 10. The camera (setting `camera`, 0.3.0)
+
+Research (DESIGN.md section 8, with the evidence):
+- **rac1** turns its follow camera with the right stick only: rate control for yaw, gain × stick x a
+  tick (`follow_camera_turn_and_pitch`), the gain from a three-step table by the game's own camera
+  speed option (1.0, 1.3, 1.6 degrees a tick; the middle by default: 78 degrees a second). No input
+  ramp; the eye follows the orbit through a spring (0.015 / 0.2): half the rate after 11 ticks, 90%
+  after 24, 15 degrees coasted after letting go. The pitch is position control, ±40 degrees, back to
+  level on letting go. The pad's dead zone is 37.8% per axis. First person is another camera, with a
+  squared curve to 87 degrees a second.
+- **rac2** has the same functions and the same numbers, the dead zone and first person included, but
+  for its table's fastest step: 1.0, 1.3, **2.2**. Its default is the middle step too. Measured in
+  OpenRAC's rac2 port, its turn is rac1's to the decimal (PLAYTEST.md). So at the default camera speed
+  the two games turn the camera alike; Going Commando is quicker only on its fastest step (132 degrees
+  a second against 96).
+- Around the turn rac2 differs a little (its camera dragged round behind him a little more, its swing
+  toward a point of interest waiting 4 seconds after the stick moves). Those are not the turn's speed:
+  reported, not ported.
+
+**Decision (the user, 2026-11-14): `rac2` is Going Commando's top speed.** Faithful to rac2's
+default step, `rac2` would change nothing until the player raised the game's camera speed. The user
+chose to have it always take rac2's fastest step (2.2 degrees a tick, 132 a second), whichever step
+the game's option is on, so the three choices rise one above the other: 78, 132 and 234 degrees a
+second at the game's default. Only rac2's fastest number is used; the pitch, the springs and the dead
+zone are the same in both games anyway.
+
+The choices:
+
+| | Yaw at full stick, by the game's camera speed step | Pitch | The eye's ramp and stop |
+|---|---|---|---|
+| `rac1` | 60 / **78** / 96 degrees a second | the game's | the game's: 90% after 24 ticks, 15 degrees coasted |
+| `rac2` (default) | 132 / **132** / 132 | the game's (rac2's is the same) | the game's (rac2's is the same) |
+| `modern` | 180 / **234** / 288 | three times as quick, the same ±40 degrees | 90% within 6 ticks, about 10 degrees coasted, stopped within 10 |
+
+**Why `modern` is three times the game's speed.** Current third-person action games turn the camera
+at roughly 180 to 300 degrees a second at full stick by default, and let the player scale that. Three
+times the game's own rate puts the default step (both games' default, 78) at 234, the middle of that
+range, and keeps the game's own camera speed option meaningful as the scale: 180 on the slow step,
+288 on the fast one. It is 1.8 times Going Commando's fastest (132), so clearly faster than both games
+on any step. Twice would leave the default at 156, barely above rac2's fastest; four times would put
+the fast step at 384, past the range.
+
+**Why `modern` holds the eye closer while the stick turns the camera.** The game's eye spring would
+keep the ramp of 24 ticks and coast three times as far, 48 degrees past where the stick let go, which
+feels floaty, not modern. While the stick turns the camera and for 20 ticks after, the spring is
+0.2 / 0.7 (`rope_spring_turn` in `camera_test.c`): 90% of the rate within 6 ticks (0.1 s, a short
+ramp, not a snap), stopped within 10 ticks of letting go. Outside that window the camera follows Ratchet
+as the game's does. The pitch's steps scale with the yaw (×3) only while the pitch is the player's
+(the stick's y, or its aim on the way back), because the game levels the orbit with the same steps
+after a jump or a slope. At 50 Hz `modern` keeps its numbers in seconds; `rac2` keeps rac1's per tick
+(rac1's PAL disc does not scale its camera).
+
+How (no new hook point, no game function called): `rac1.camera.follow.apply_overrides` runs after
+`follow_camera_update` sets the gain from the table and before the turn reads it. The hook writes the
+gain (`rac2`: × rac2's entry over rac1's; `modern`: × 3), and for `modern` the pitch's steps and the eye's
+springs. rac1 sets the gain again at its next update; the pad hook puts every word back before the next
+tick, as the mod's other steers.
+
+Left out (README, known limits): first person (the same in both games; no hook point brackets its
+camera), the dead zone (it would change the stick for the whole game), and the differences around the
+turn. Other mods: **modern-controls** drives the right-stick camera itself, so with it `camera` should be
+`rac1`; **steam-deck-pack**'s gyro and trackpad feed the right stick and take this setting's speed
+(DESIGN.md section 7).
+
+Risks:
+- The springs and the pitch's steps are level constants the game never sets: if a tick ran the
+  camera's update without a pad poll before the next, the hook's own start puts them back first, so
+  they never compound (the load test runs that).
+- Under `modern`, strafing while the camera turns fast, Ratchet turns after it on Going Commando's own
+  strafe spring (4.2): some 27 degrees behind at 234 degrees a second (9 at 78), catching up as the
+  camera slows.

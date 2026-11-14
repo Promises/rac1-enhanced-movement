@@ -2,8 +2,8 @@
  *
  * The built library loaded the way the port loads it (GUIDE.md section 12), against a host table of
  * the test's own: its query, its refusals, its hooks and their signatures, and each hook's work on
- * game memory laid out at src/rac1/discs.h's NTSC addresses, with the game's own code standing in as
- * counting stubs.
+ * game memory laid out at each of src/rac1/discs.h's rows' addresses, with the game's own code
+ * standing in as counting stubs.
  *
  *     rac1_enhanced_movement_load_test <path to the library>
  */
@@ -43,8 +43,9 @@ static char g_last_log[1024];
 static int g_warned;
 
 /* The settings the next load reads. */
-static int s_ground, s_air, s_flips, s_twist, s_trace;
+static int s_ground, s_air, s_flips, s_twist, s_wrench, s_trace;
 static const char* s_strafe;
+static const char* s_camera;
 static int g_no_approach; /* the port lacks rac1.player.approach_speed */
 
 /* The NTSC row. */
@@ -108,6 +109,18 @@ static void reset_game(void) {
     putu(H(BM_HERO_ANIM_BLEND_CURVE), (uint32_t)-1);
     putu(H(BM_HERO_ANIM_LOOP_FRAME), (uint32_t)-1);
     putu(CAMERA_MOBY + BM_CAMERA_VARS, CAMERA_VARS);
+
+    // The follow camera's numbers as the game has them: its middle speed step, the pitch's steps,
+    // the eye's springs.
+    putu(D->cam_option, 1);
+    putf(D->cam_gain, 0.02268928f);
+    putf(D->cam_pitch_out, 0.02f);
+    putf(D->cam_pitch_back, 0.01f);
+    putf(D->cam_pitch_step, 0.030543262f);
+    putf(D->cam_yaw_accel, 0.015f);
+    putf(D->cam_yaw_damp, 0.2f);
+    putf(D->cam_pitch_accel, 0.015f);
+    putf(D->cam_pitch_damp, 0.2f);
 }
 
 /* ---- The hooks the mod takes, and the game's code behind each -------------------------- */
@@ -123,7 +136,8 @@ typedef struct taken {
 static int g_turn_calls, g_approach_calls, g_planar_calls, g_update_calls, g_advance_calls,
     g_pad_calls, g_camera_calls;
 static float g_turn_args[3], g_turn_move_yaw, g_approach_args[2], g_approach_target, g_planar_angle,
-    g_advance_speed;
+    g_advance_speed, g_advance_frame;
+static int32_t g_advance_changing;
 static void (*g_inside)(void); /* what the state machine does inside hero_update */
 
 static void orig_pad(uint32_t p, uint32_t r, int32_t n) {
@@ -168,6 +182,8 @@ static void orig_camera(uint32_t c) {
 static void orig_advance(void) {
     g_advance_calls++;
     g_advance_speed = getf(H(BM_HERO_ANIM_SPEED));
+    g_advance_frame = getf(H(BM_HERO_ANIM_FRAME));
+    g_advance_changing = (int32_t)getu(H(BM_HERO_ANIM_CHANGING));
 }
 
 static void orig_approach(float up, float down) {
@@ -334,13 +350,14 @@ static int fake_bool(openrac_mod* mod, const char* key) {
         {"air", &s_air},
         {"flips", &s_flips},
         {"twist", &s_twist},
+        {"wrench", &s_wrench},
         {"trace", &s_trace},
     };
 
     (void)mod;
 
     // The setting asked for; 0 for a key the manifest has not.
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
         // This one.
         if (strcmp(key, settings[i].key) == 0) {
             return *settings[i].value;
@@ -364,6 +381,12 @@ static double fake_float(openrac_mod* mod, const char* key) {
 
 static const char* fake_string(openrac_mod* mod, const char* key) {
     (void)mod;
+
+    // The camera's choice.
+    if (strcmp(key, "camera") == 0) {
+        return s_camera;
+    }
+
     return strcmp(key, "strafe") == 0 ? s_strafe : "";
 }
 
@@ -429,9 +452,10 @@ static int load_mod(void) {
 }
 
 static void defaults(void) {
-    s_ground = s_air = s_flips = s_twist = 1;
+    s_ground = s_air = s_flips = s_twist = s_wrench = 1;
     s_trace = 0;
     s_strafe = "both";
+    s_camera = "rac2";
     g_no_approach = 0;
     g_game = "rac1";
     g_version = D->version;
@@ -479,12 +503,37 @@ static void refusals(void) {
     CHECK_EQ(strstr(g_fail, "PAL v2.00 and NTSC-U") != NULL, 1);
     CHECK_EQ(g_hooks_taken, 0);
 
-    // Everything off: loads, takes nothing.
+    // Everything off, the camera the first game's: loads, takes nothing.
+    defaults();
+    s_ground = s_air = s_wrench = 0;
+    s_strafe = "off";
+    s_camera = "rac1";
+    CHECK_EQ(load_mod(), 0);
+    CHECK_EQ(g_hooks_taken, 0);
+
+    // The wrench alone: the update, the animation, the turn, the speeds and the pad.
     defaults();
     s_ground = s_air = 0;
     s_strafe = "off";
+    s_camera = "rac1";
     CHECK_EQ(load_mod(), 0);
-    CHECK_EQ(g_hooks_taken, 0);
+    CHECK_EQ(g_hooks_taken, 5);
+    CHECK_EQ(g_hooks[PLANAR].replacement == NULL, 1);
+    CHECK_EQ(g_hooks[CAMERA].replacement == NULL, 1);
+
+    // The camera alone, either choice: the camera's overrides and the pad (which puts its words back
+    // before each tick), not the hero's update.
+    defaults();
+    s_ground = s_air = s_wrench = 0;
+    s_strafe = "off";
+    CHECK_EQ(load_mod(), 0);
+    CHECK_EQ(g_hooks_taken, 2);
+    CHECK_EQ(g_hooks[CAMERA].replacement != NULL, 1);
+    CHECK_EQ(g_hooks[PAD].replacement != NULL, 1);
+    CHECK_EQ(g_hooks[UPDATE].replacement == NULL, 1);
+    s_camera = "modern";
+    CHECK_EQ(load_mod(), 0);
+    CHECK_EQ(g_hooks_taken, 2);
 }
 
 static void hooks(void) {
@@ -758,6 +807,210 @@ static void backpedal(void) {
     CHECK_NEAR(getf(H(BM_HERO_ANIM_SPEED)), 0.5, TOL);
 }
 
+/* ---- The wrench ---------------------------------------------------------------------------- */
+
+/* The history slot of a press `age` polls back (the newest poll is 1; reset_game's index is 5). */
+static uint32_t slot_of(int age) {
+    return P(BM_PAD_HIST_BTN + 4 * (uint32_t)((5 - age + 30) % 30));
+}
+
+/* The wrench in hand, ready, on foot. */
+static void wrench_in_hand(void) {
+    putu(H(BM_HERO_ITEM_MOBY), MOBY);
+    putu(H(BM_HERO_ITEM_STATE), 2);
+    putu(H(BM_HERO_ITEM_ID), 8);
+}
+
+static void lock_on_tick(void) {
+    CALL_TURN(0, 0.05f, 0.2f, 15.009831f / 60.0f);
+}
+
+static void lock_on_tick_pal(void) {
+    CALL_TURN(0, 0.05f * 1.44f, 0.2f * 1.44f, 15.009831f / 50.0f);
+}
+
+static void slam_tick(void) {
+    putf(H(BM_HERO_TARGET_SPEED), 0.0f); /* rac1's slam without a target */
+    CALL_APPROACH(15.0f / 3600.0f, 15.0f / 3600.0f);
+}
+
+/* Going Commando's wrench: the lock-on turn, the swings' steers and their undo, Square's buffer, no
+ * Square while the wrench is out, the slam's drive, the flip giving way to a swing, the setting off. */
+static void wrench(void) {
+    defaults();
+    load_mod();
+    reset_game();
+    wrench_in_hand();
+
+    // The lock-on turn in a swing: 15.01 radians a second becomes 0.2821616 a tick; the throw's
+    // accel 0.057.
+    putu(H(BM_HERO_STATE), 0x13);
+    putu(H(BM_HERO_CONTROL_MODE), 6);
+    g_inside = lock_on_tick;
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.05, TOL);
+    CHECK_NEAR(g_turn_args[1], 0.2, TOL);
+    CHECK_NEAR(g_turn_args[2], 0.2821616, TOL);
+    putu(H(BM_HERO_STATE), 0x15);
+    putu(H(BM_HERO_ATTACK_RECORD), 3);
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.057, TOL);
+    g_inside = NULL;
+    CALL_ADVANCE();
+
+    // The first swing at frame 26.5 with a full stick: rac2 runs out (past its exit, 26), so rac1
+    // sees frame 31.5 (past its exit, 31) for the transitions. There rac1's windows are 15 polls for
+    // Square and 24 for X, rac2's at 26.5 only 14: a Square 15 back and an X 20 back are hidden.
+    putu(H(BM_HERO_STATE), 0x13);
+    putu(H(BM_HERO_ATTACK_RECORD), 0);
+    putf(H(BM_HERO_ANIM_FRAME), 26.5f);
+    putf(H(BM_HERO_STICK), 1.0f);
+    putu(slot_of(15), BM_PAD_SQUARE);
+    putu(slot_of(20), BM_PAD_CROSS);
+    CALL_UPDATE();
+    CHECK_NEAR(getf(H(BM_HERO_ANIM_FRAME)), 31.5, TOL);
+    CHECK_EQ(getu(slot_of(15)), 0);
+    CHECK_EQ(getu(slot_of(20)), 0);
+
+    // The transitions went to idle: the frame is put back before the animation's advance all the
+    // same, and the presses before the next poll.
+    putu(H(BM_HERO_STATE), 0);
+    CALL_ADVANCE();
+    CHECK_NEAR(g_advance_frame, 26.5, TOL);
+    CALL_PAD();
+    CHECK_EQ(getu(slot_of(15)), BM_PAD_SQUARE);
+    CHECK_EQ(getu(slot_of(20)), BM_PAD_CROSS);
+    putu(slot_of(15), 0);
+    putu(slot_of(20), 0);
+
+    // The third swing at 22, stick centred: rac1 would stand (past 21), rac2 waits: held by the blend
+    // flag for the transitions, which is put back after.
+    putu(H(BM_HERO_STATE), 0x13);
+    putu(H(BM_HERO_ATTACK_RECORD), 2);
+    putf(H(BM_HERO_ANIM_FRAME), 22.0f);
+    putf(H(BM_HERO_STICK), 0.0f);
+    CALL_UPDATE();
+    CHECK_EQ(getu(H(BM_HERO_ANIM_CHANGING)), 1);
+    CALL_ADVANCE();
+    CHECK_EQ(g_advance_changing, 0);
+
+    // The throw at 36, X 3 polls back: rac2 jumps out, so rac1 sees frame 88; a Square 5 back is
+    // hidden (at 88 it would throw again), X stays.
+    putu(H(BM_HERO_STATE), 0x15);
+    putu(H(BM_HERO_ATTACK_RECORD), 3);
+    putf(H(BM_HERO_ANIM_FRAME), 36.0f);
+    putu(slot_of(3), BM_PAD_CROSS);
+    putu(slot_of(5), BM_PAD_SQUARE);
+    CALL_UPDATE();
+    CHECK_NEAR(getf(H(BM_HERO_ANIM_FRAME)), 88.0, TOL);
+    CHECK_EQ(getu(slot_of(3)), BM_PAD_CROSS);
+    CHECK_EQ(getu(slot_of(5)), 0);
+    CALL_ADVANCE();
+    CALL_PAD();
+    CHECK_EQ(getu(slot_of(5)), BM_PAD_SQUARE);
+    putu(slot_of(3), 0);
+    putu(slot_of(5), 0);
+
+    // Standing, Square 9 polls back: rac1 counts 7, rac2 10, so it is shown in the newest poll.
+    putu(H(BM_HERO_STATE), 0);
+    putu(H(BM_HERO_CONTROL_MODE), 0);
+    putu(slot_of(9), BM_PAD_SQUARE);
+    CALL_UPDATE();
+    CHECK_EQ(getu(slot_of(1)), BM_PAD_SQUARE);
+    CALL_ADVANCE();
+    CALL_PAD();
+    CHECK_EQ(getu(slot_of(1)), 0);
+    CHECK_EQ(getu(slot_of(9)), BM_PAD_SQUARE);
+
+    // 11 polls back is past rac2's 10 too.
+    putu(slot_of(9), 0);
+    putu(slot_of(11), BM_PAD_SQUARE);
+    CALL_UPDATE();
+    CHECK_EQ(getu(slot_of(1)), 0);
+    CALL_ADVANCE();
+    putu(slot_of(11), 0);
+
+    // The wrench out, in a jump: Square 3 polls back is hidden (rac1 would slam with no wrench).
+    putu(H(BM_HERO_STATE), 7);
+    putu(H(BM_HERO_CONTROL_MODE), 4);
+    putu(H(BM_HERO_STATE_TIMER), 20);
+    g_mem[H(BM_HERO_ITEM_THROWN)] = 1;
+    putu(slot_of(3), BM_PAD_SQUARE);
+    CALL_UPDATE();
+    CHECK_EQ(getu(slot_of(3)), 0);
+    CALL_ADVANCE();
+    CALL_PAD();
+    CHECK_EQ(getu(slot_of(3)), BM_PAD_SQUARE);
+    putu(slot_of(3), 0);
+    g_mem[H(BM_HERO_ITEM_THROWN)] = 0;
+
+    // The slam 5 above the ground, no target, its 10th tick: the target is 4.5 a second (0.075) for
+    // the call, rac1's 0 after.
+    putu(H(BM_HERO_STATE), 0x14);
+    putu(H(BM_HERO_STATE_TIMER), 10);
+    putf(H(BM_HERO_GROUND_DISTANCE), 5.0f);
+    g_inside = slam_tick;
+    CALL_UPDATE();
+    CHECK_NEAR(g_approach_target, 0.075, TOL);
+    CHECK_NEAR(getf(H(BM_HERO_TARGET_SPEED)), 0.0, TOL);
+
+    // 3 above: rac1's own.
+    putf(H(BM_HERO_GROUND_DISTANCE), 3.0f);
+    CALL_UPDATE();
+    CHECK_NEAR(g_approach_target, 0.0, TOL);
+    g_inside = NULL;
+    CALL_ADVANCE();
+
+    // The setting off: the turn as it came, and no steer.
+    s_wrench = 0;
+    load_mod();
+    putu(H(BM_HERO_STATE), 0x13);
+    putu(H(BM_HERO_CONTROL_MODE), 6);
+    putu(H(BM_HERO_ATTACK_RECORD), 0);
+    putf(H(BM_HERO_ANIM_FRAME), 27.0f);
+    putf(H(BM_HERO_STICK), 1.0f);
+    g_inside = lock_on_tick;
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[2], 15.009831 / 60.0, TOL);
+    CHECK_NEAR(getf(H(BM_HERO_ANIM_FRAME)), 27.0, TOL);
+    g_inside = NULL;
+}
+
+/* A strafe flip gives way to a Square the wrench takes in the same tick (rac2 swings; R1 would make
+ * rac1 throw). */
+static void flip_and_square(void) {
+    defaults();
+    load_mod();
+    reset_game();
+    wrench_in_hand();
+    putu(H(BM_HERO_STATE), 0);
+    putu(H(BM_HERO_CONTROL_MODE), 0);
+    putf(D->camera_yaw, 0.9f);
+    putf(H(BM_HERO_FACING), 0.9f);
+    putf(H(BM_HERO_MOVE_YAW), 0.9f + 1.5707963f);
+    putf(H(BM_HERO_STICK), 1.0f);
+    putf(H(BM_HERO_STICK_X), -1.0f);
+    putu(P(BM_PAD_HELD), BM_PAD_L2);
+    CALL_PAD();
+    putu(slot_of(1), BM_PAD_CROSS);
+    putu(slot_of(3), BM_PAD_SQUARE);
+    g_inside = NULL;
+    CALL_UPDATE();
+    CHECK_EQ(getu(P(BM_PAD_HELD)) & BM_PAD_R1, 0);
+    CHECK_EQ(getu(slot_of(1)) & BM_PAD_FLICK, 0);
+    CALL_ADVANCE();
+
+    // Without the Square, the flip.
+    putu(P(BM_PAD_HELD), BM_PAD_L2);
+    CALL_PAD();
+    putu(slot_of(1), BM_PAD_CROSS);
+    putu(slot_of(3), 0);
+    CALL_UPDATE();
+    CHECK_EQ((getu(P(BM_PAD_HELD)) & BM_PAD_R1) != 0, 1);
+    CALL_ADVANCE();
+    CALL_PAD();
+}
+
 /* Settings off: the calls as they came. */
 static void settings_off(void) {
     defaults();
@@ -770,8 +1023,192 @@ static void settings_off(void) {
     CALL_UPDATE();
     CHECK_NEAR(g_turn_args[0], 0.019, TOL);
     CHECK_NEAR(g_planar_angle, 99999.0, 1e-2);
+
+    // The speeds as rac1 asked (the hook is there for the wrench's slam).
+    CHECK_NEAR(g_approach_target, 5.7 / 60.0, TOL);
+    CHECK_NEAR(g_approach_args[1], 8.5 / 3600.0, 1e-7);
+
+    // With the wrench off too, the speeds' hook is not taken.
+    s_wrench = 0;
+    load_mod();
     CHECK_EQ(g_hooks[APPROACH].replacement == NULL, 1);
     g_inside = NULL;
+}
+
+/* ---- The camera ---------------------------------------------------------------------------- */
+
+/* The follow camera's update as far as the mod sees it: the gain set from the game's table
+ * (follow_camera_update), then the overrides, the mod's hook. */
+static void camera_update(float table_gain) {
+    putf(D->cam_gain, table_gain);
+    CALL_CAMERA();
+}
+
+/* Standing strafing on L2, the follow camera in use. */
+static void strafing(void) {
+    putu(H(BM_HERO_STATE), 2);
+    putu(H(BM_HERO_CONTROL_MODE), 1);
+    putu(P(BM_PAD_HELD), BM_PAD_L2);
+    CALL_PAD();
+    g_inside = NULL;
+    CALL_UPDATE();
+}
+
+/* The camera's turn (the `camera` setting): each choice's gain, modern's pitch steps and springs,
+ * each put back before the next tick; nothing out of play, nothing written into another level's
+ * program; the strafe camera beside it. */
+static void camera_turn(void) {
+    const float medium = 0.02268928f;
+    const float fast = 0.027925268f;
+
+    // Going Commando's at the game's middle step: its fastest, 2.2 degrees a tick for 1.3.
+    defaults();
+    load_mod();
+    reset_game();
+    g_camera_calls = 0;
+    camera_update(medium);
+    CHECK_EQ(g_camera_calls, 1);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CALL_PAD();
+    CHECK_EQ(getf(D->cam_gain) == medium, 1);
+
+    // At the fast step: 2.2 degrees a tick for 1.6; the pitch's steps and the springs the game's.
+    putu(D->cam_option, 2);
+    camera_update(fast);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_step), 0.030543262, 1e-9);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
+
+    // The next poll puts it back (the game would set it again from its table itself).
+    CALL_PAD();
+    CHECK_EQ(getf(D->cam_gain) == fast, 1);
+
+    // Modern, the stick turning the camera: three times the gain, the eye's springs 0.2 / 0.7; the
+    // pitch's steps the game's while the pitch is not the player's (the game levels the orbit with
+    // them).
+    s_camera = "modern";
+    load_mod();
+    reset_game();
+    putf(P(BM_PAD_ANALOG), 1.0f);
+    camera_update(medium);
+    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
+    CALL_PAD();
+
+    // The stick's y past 0.3 too: the pitch's steps three times as quick.
+    putf(P(BM_PAD_ANALOG + 4), 0.6f);
+    camera_update(medium);
+    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.06, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_back), 0.03, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_step), 0.091629786, 1e-8);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
+    CHECK_NEAR(getf(D->cam_yaw_damp), 0.7, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_accel), 0.2, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_damp), 0.7, TOL);
+
+    // A second update without a poll between: each word put back first, so three times again, not
+    // nine (the pitch's steps are numbers the game never sets itself).
+    camera_update(medium);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.06, TOL);
+    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
+
+    // The poll puts every word back.
+    CALL_PAD();
+    CHECK_EQ(getf(D->cam_gain) == medium, 1);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_back), 0.01, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_step), 0.030543262, 1e-9);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
+    CHECK_NEAR(getf(D->cam_yaw_damp), 0.2, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_accel), 0.015, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_damp), 0.2, TOL);
+
+    // The stick let go, the pitch's aim on its way back: the springs hold 20 ticks more, then are the
+    // game's; the pitch's steps stay modern's until the aim is back at 0.
+    putf(P(BM_PAD_ANALOG), 0.0f);
+    putf(P(BM_PAD_ANALOG + 4), 0.0f);
+    putf(CAMERA_VARS + BM_CAMERA_PITCH_AIM, 0.4f);
+
+    // Each tick: the poll, then the camera's update.
+    for (int i = 0; i < 20; i++) {
+        CALL_PAD();
+        camera_update(medium);
+        CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
+    }
+
+    CALL_PAD();
+    camera_update(medium);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_damp), 0.2, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.06, TOL);
+
+    // The aim back at 0: the pitch's steps the game's again.
+    putf(CAMERA_VARS + BM_CAMERA_PITCH_AIM, 0.0f);
+    CALL_PAD();
+    camera_update(medium);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_step), 0.030543262, 1e-9);
+
+    // The pitch past 0.3 turns it too.
+    putf(P(BM_PAD_ANALOG + 4), -0.5f);
+    CALL_PAD();
+    camera_update(medium);
+    CHECK_NEAR(getf(D->cam_pitch_accel), 0.2, TOL);
+    putf(P(BM_PAD_ANALOG + 4), 0.0f);
+
+    // The camera's flags shut the turn (a scripted swing): the stick does not turn it, no spring.
+    reset_game();
+    putf(P(BM_PAD_ANALOG), 1.0f);
+    putu(CAMERA_VARS + BM_CAMERA_TURN_FLAGS, 1);
+    load_mod();
+    camera_update(medium);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
+    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
+    putu(CAMERA_VARS + BM_CAMERA_TURN_FLAGS, 0);
+    CALL_PAD();
+
+    // Another level loaded before the poll: its program is elsewhere, so nothing is written back.
+    camera_update(medium);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
+    g_level = 3;
+    CALL_PAD();
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
+    g_level = 0;
+
+    // Out of play (a scene): nothing steered.
+    reset_game();
+    putf(P(BM_PAD_ANALOG), 1.0f);
+    putu(D->cinematic_mode, 1);
+    camera_update(medium);
+    CHECK_EQ(getf(D->cam_gain) == medium, 1);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
+    putu(D->cinematic_mode, 0);
+
+    // Strafing with modern: rac1's strafe requests and the turn's gain, both.
+    reset_game();
+    strafing();
+    g_orbit_calls = 0;
+    camera_update(medium);
+    CHECK_EQ(g_orbit_calls, 1);
+    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
+    CALL_ADVANCE();
+    CALL_PAD();
+
+    // The first game's camera: the strafe's requests still, the gain the game's.
+    s_camera = "rac1";
+    load_mod();
+    reset_game();
+    strafing();
+    g_orbit_calls = 0;
+    camera_update(medium);
+    CHECK_EQ(g_orbit_calls, 1);
+    CHECK_EQ(getf(D->cam_gain) == medium, 1);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
+    CALL_ADVANCE();
+    CALL_PAD();
 }
 
 /* PAL's 50 Hz tick on PAL's row: rac2's numbers scaled as rac1 scales its own, rac1's counts by 1.2. */
@@ -802,6 +1239,50 @@ static void pal_tick(void) {
     g_inside = NULL;
     CALL_UPDATE();
     CHECK_EQ(getu(H(BM_HERO_STATE_TIMER)), 31);
+    CALL_ADVANCE();
+
+    // The wrench standing: Square 9 polls back, which 60 Hz buffers (rac1 7, rac2 10). At 50 Hz rac1
+    // counts 8 and rac2's PAL release 8 too: not shown.
+    wrench_in_hand();
+    putu(H(BM_HERO_STATE), 0);
+    putu(H(BM_HERO_CONTROL_MODE), 0);
+    putf(H(BM_HERO_STICK), 0.0f);
+    putu(slot_of(9), BM_PAD_SQUARE);
+    CALL_UPDATE();
+    CHECK_EQ(getu(slot_of(1)), 0);
+    CALL_ADVANCE();
+    CALL_PAD();
+    putu(slot_of(9), 0);
+
+    // The lock-on turn: 0.2821616 x 1.2 radians a tick.
+    putu(H(BM_HERO_STATE), 0x13);
+    putu(H(BM_HERO_CONTROL_MODE), 6);
+    g_inside = lock_on_tick_pal;
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[2], 0.33859392, TOL);
+    CHECK_NEAR(g_turn_args[0], 0.072, TOL);
+    g_inside = NULL;
+    CALL_ADVANCE();
+
+    // The camera, modern: the game's 1.3 degrees a tick (65 a second at 50 Hz) by 3.6, so 234 a
+    // second still; the pitch's steps by 3.6; the eye's springs 0.2 x 1.44 and 0.7 x 1.2.
+    s_camera = "modern";
+    load_mod();
+    putf(P(BM_PAD_ANALOG), -1.0f);
+    putf(P(BM_PAD_ANALOG + 4), 1.0f);
+    camera_update(0.02268928f);
+    CHECK_NEAR(getf(D->cam_gain), 0.081681408, TOL);
+    CHECK_NEAR(getf(D->cam_pitch_out), 0.072, TOL);
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.288, TOL);
+    CHECK_NEAR(getf(D->cam_yaw_damp), 0.84, TOL);
+    CALL_PAD();
+    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
+
+    // Going Commando's at 50 Hz: its fastest step per tick, as rac1 counts the gain per tick.
+    s_camera = "rac2";
+    load_mod();
+    camera_update(0.02268928f);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
 }
 
 int main(int argc, char** argv) {
@@ -856,7 +1337,10 @@ int main(int argc, char** argv) {
         run_exit();
         strafe();
         backpedal();
+        wrench();
+        flip_and_square();
         settings_off();
+        camera_turn();
     }
 
     pal_tick();

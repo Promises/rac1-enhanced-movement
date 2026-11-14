@@ -67,3 +67,47 @@ TWIST_HIP_DAMP	0.27f	rac2-decomp/src/levels/shared/L00_002B7B80.c:45
 TWIST_HIP_ACCEL	0.037f	rac2-decomp/src/levels/shared/L00_002B7B80.c:46
 TWIST_BODY_ACCEL	0.025f	rac2-decomp/src/levels/shared/L00_002B7B80.c:47
 TWIST_BODY_DAMP	0.27f	rac2-decomp/src/levels/shared/L00_002B7B80.c:48
+STRAFE_SIDE_TICKS	5	rac2-decomp/src/levels/shared/L00_002B35A0.c:19
+WRENCH_TURN_ACCEL	0.05f	rac2-decomp/src/levels/shared/L00_002BA7D8.c:1669
+WRENCH_TURN_DAMP	0.2f	rac2-decomp/src/levels/shared/L00_002BA7D8.c:1669
+WRENCH_TURN_LIMIT	0.2821616f	rac2-decomp/src/levels/shared/L00_002BA7D8.c:1669
+THROW_TURN_ACCEL	0.057f	rac2-decomp/src/levels/shared/L00_002BA7D8.c:1530
+SLAM_DRIVE_HEIGHT	4.0f	rac2-decomp/src/levels/shared/L00_002BA7D8.c:1424
+SLAM_DRIVE_TICKS	0x46	rac2-decomp/src/levels/shared/L00_002BA7D8.c:1439
+SLAM_DRIVE	0.075f	rac2-decomp/src/levels/shared/L00_002BA7D8.c:1440
+THROW_RUN_FRAME	34.0f	rac2-decomp/src/levels/shared/L00_002CB3A8-decider.c:679
+THROW_RUN_STICK	0.9f	rac2-decomp/src/levels/shared/L00_002CB3A8-decider.c:679
+RUN_OUT_STICK	0.8f	rac2-decomp/src/levels/shared/L00_002CB3A8-decider.c:690
+EXIT_IDLE_FRAMES	5	rac2-decomp/src/levels/shared/L00_002CB3A8-decider.c:694
+THROW_JUMP_WINDOW	8	rac2-decomp/src/levels/shared/L00_002CB3A8-decider.c:658
+WRENCH_WINDOW	10	rac2-decomp/src/levels/shared/L00_002C9448-g8.c:158
+WRENCH_AIR_WINDOW	14	rac2-decomp/src/levels/shared/L00_002C9448-g8.c:189
+WRENCH_AIR_LATE_WINDOW	18	rac2-decomp/src/levels/shared/L00_002C9448-g8.c:191
+CHAIN_WINDOW	15	rac2-decomp/src/levels/shared/L00_002C9448-g8.c:222
+THROW_AGAIN_TICKS	31	rac2-decomp/src/levels/shared/L00_002C9448-g8.c:206
+REC0_FIRST	19	level 0 data D_L00_0025D990[0]+0xc (v2.00 0x25d91c)
+REC0_OPEN	25	level 0 data D_L00_0025D990[0]+0x10 (v2.00 0x25d920)
+REC0_JUMP	24	level 0 data D_L00_0025D990[0]+0x14 (v2.00 0x25d924)
+REC0_EXIT	26	level 0 data D_L00_0025D990[0]+0x18 (v2.00 0x25d928)
+REC1_FIRST	7	level 0 data D_L00_0025D990[1]+0xc (v2.00 0x25d948)
+REC1_OPEN	12	level 0 data D_L00_0025D990[1]+0x10 (v2.00 0x25d94c)
+REC1_JUMP	13	level 0 data D_L00_0025D990[1]+0x14 (v2.00 0x25d950)
+REC1_EXIT	15	level 0 data D_L00_0025D990[1]+0x18 (v2.00 0x25d954)
+REC2_FIRST	16	level 0 data D_L00_0025D990[2]+0xc (v2.00 0x25d974)
+REC2_OPEN	23	level 0 data D_L00_0025D990[2]+0x10 (v2.00 0x25d978)
+REC2_JUMP	19	level 0 data D_L00_0025D990[2]+0x14 (v2.00 0x25d97c)
+REC2_EXIT	21	level 0 data D_L00_0025D990[2]+0x18 (v2.00 0x25d980)
+REC3_FIRST	83	level 0 data D_L00_0025D990[3]+0xc (v2.00 0x25d9a0)
+REC3_OPEN	88	level 0 data D_L00_0025D990[3]+0x10 (v2.00 0x25d9a4)
+REC3_JUMP	35	level 0 data D_L00_0025D990[3]+0x14 (v2.00 0x25d9a8)
+REC3_EXIT	91	level 0 data D_L00_0025D990[3]+0x18 (v2.00 0x25d9ac)
+CAMERA_SPEED_SLOW	0.017453294f	level 0 data D_L00_001B15B8[0] (v2.00 0x1b1558)
+CAMERA_SPEED_MEDIUM	0.022689281f	level 0 data D_L00_001B15B8[1] (v2.00 0x1b155c)
+CAMERA_SPEED_FAST	0.03839725f	level 0 data D_L00_001B15B8[2] (v2.00 0x1b1560)
+CAMERA_PITCH_TRACKING	0.02f	level 0 data D_L00_001B14B8 (v2.00 0x1b1458)
+CAMERA_PITCH_RETURN	0.01f	level 0 data D_L00_001B14BC (v2.00 0x1b145c)
+CAMERA_PITCH_STEP	0.030543264f	level 0 data D_L00_001B14C0 (v2.00 0x1b1460)
+CAMERA_YAW_SPRING_ACCEL	0.015f	level 0 data D_L00_001B14E8 (v2.00 0x1b1488)
+CAMERA_YAW_SPRING_DAMP	0.2f	level 0 data D_L00_001B14EC (v2.00 0x1b148c)
+CAMERA_PITCH_SPRING_ACCEL	0.015f	level 0 data D_L00_001B14F0 (v2.00 0x1b1490)
+CAMERA_PITCH_SPRING_DAMP	0.2f	level 0 data D_L00_001B14F4 (v2.00 0x1b1494)

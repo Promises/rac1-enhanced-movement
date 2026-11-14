@@ -20,7 +20,8 @@ TABLE = ROOT / "tests" / "data" / "rac2_constants.tsv"
 
 
 def main() -> int:
-    defined = dict(re.findall(r"^#define RAC2_(\w+) (-?[0-9.]+f)\s*$", HEADER.read_text(), re.M))
+    # A float literal, or a count (decimal or hexadecimal).
+    defined = dict(re.findall(r"^#define RAC2_(\w+) (-?[0-9.]+f|0x[0-9A-Fa-f]+|[0-9]+)\s*$", HEADER.read_text(), re.M))
     table = {}
 
     for line in TABLE.read_text().splitlines():

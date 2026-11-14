@@ -129,6 +129,208 @@ numbers: run 5.70 u/s, 43 ticks to 90%, STOP for 48 ticks. With the mod:
 The 50 Hz path itself (rac2's numbers scaled for it, rac1's windows counted by `scale_ticks`) cannot
 run in OpenRAC today. The unit tests and the load test's PAL-tick scenario check it.
 
+### The wrench (0.3.0)
+
+The wrench was played against Going Commando itself, in OpenRAC's port of it (`openrac-rac2-ntsc2`,
+the v2.00 disc's data). Both games ran the same pad routes on the same port switches. rac2 ran on
+Oozla (its level 1), rac1 on Novalis (level 1) and Veldin (level 0). rac1 played each route three
+ways: without the mod, with the mod and `wrench` off, and with the mod.
+
+```sh
+COMBO="c30:8000:4,c48:8000:4,c66:8000:4,c160:8000:4:128:0,c164:0:60:128:0,c260:800:10,c270:8800:4,c274:800:30,c330:0:60:128:0,c440:4000:6,c455:8000:4,c560:4000:6,c580:4000:4,c600:8000:4"
+tools/playtest.sh /tmp/pt combo_on 1 '{"wrench": true, "trace": true}' ROUTE="$COMBO" CF=700
+python3 tools/playtest_analyze.py --states /tmp/pt/combo_on.jsonl   # the states, from the port's trace
+python3 tools/playtest_analyze.py --swings /tmp/pt/combo_on.log     # each swing, from the mod's trace
+```
+
+The routes (masks: `8000` Square, `800` R1, `4000` X, `100` L2):
+- **Combo** (`COMBO` above): three Squares 18 frames apart; one Square with the stick held
+  forward; R1 and Square (the throw); X then Square (the slam); a double jump, then Square.
+- **Throw**: `c30:800:10,c40:8800:4,c44:800:6,c60:0:40:128:0,c200:800:10,c210:8800:4,c214:800:6,c240:4000:4,c400:8000:4,c418:8000:4,c425:0:40:128:0,c560:4000:4,c561:8000:3,c700:4000:4,c700:8000:2`.
+  It throws, then pushes the stick; throws, then presses X; swings twice with the stick pushed
+  after the second; presses Square one poll after X.
+- **Veldin**: Ratchet is moved (`OPENRAC_WRITE`, the hero's position and facing, `+0x80` and `+0x98`)
+  to the bolt crates (class 500) at (143.5, 96.8, 32.6), facing them, and at frame 560 to the horny
+  toads (class 749) at (151, 121, 30.3). There: the combo into the crates, the throw, a Square with
+  the stick left, L2 held with the stick right and Square, then X and Square by the toads.
+
+Where the numbers come from:
+- **Totals** (the states and their ticks) come from the port's trace with `--states`. The port
+  writes the same trace for rac2.
+- **rac1, swing by swing**: `--swings` reads the mod's trace from the run with `wrench` off, whose
+  swings are rac1's own. The trace prints each tick after the mod's steers, so a steered tick shows
+  the steered frame.
+- **rac2, swing by swing**: a read-only probe library (`on_frame`) read the hero (`0x189E20`): state
+  `+0x2294`, state timer `+0x1B8`, animation frame `+0xC38`, attack record `+0xBFC`, position
+  `+0x80`, and `+0x123A` (the wrench out). It changes nothing and is not part of the mod. It read
+  the same fields from rac1 too, and agreed with the mod's trace.
+
+**The combo route, NTSC-U** (ticks; PAL gave the same numbers, tick for tick):
+
+| | rac1 | rac1 with the mod | rac2 |
+|---|---|---|---|
+| Three swings: swing by swing | 25 / 17 / 46 | 23 / 17 / 56 | 23 / 17 / 56 |
+| Three swings, in all | 88 | 96 | 96 |
+| One swing, stick pushed | 36, idle 1, run | 26, idle 1, run | 26, run |
+| Jump, Square: the jump, the slam | 15, 38 | not reached (below) | 15, 38 |
+| Double jump, Square: the slam | 38 | 38 | 38 |
+
+The lunges are the same everywhere: the three swings cover 3.15 units in all three columns, the
+one swing 0.67. With the mod, the run out of the throw (the route pushes the stick there) took
+Ratchet off a ledge. He was falling when the jump's X and Square came, and the Square swung on
+landing. The slam's timing is in the next two tables.
+
+**The throw route** (NTSC-U and PAL the same):
+
+| | rac1 | rac1 with the mod | rac2 |
+|---|---|---|---|
+| Throw, then the stick pushed | 89 in the throw (to its frame 91), the stick ignored | 21 (frame 35), then the run while the wrench flies | 19 (frame 34), then the run |
+| Throw, then X | 89, X lost | 30 (frame 39.5), then the jump | 30 (frame 39.5), then the jump |
+| Two swings, stick pushed in the second | 25 / 40, idle | 23 / 24, idle 1, run | 23 / 24, run |
+| X, Square one poll later | the jump, no slam | the jump 11, the slam 39 | the jump 11, the slam 39 |
+
+- **The throw and the stick.** Each run pushed the stick when its throw was at a different frame.
+  The mod ran out at the first tick past frame 34 with the stick pushed, as rac2's decider does.
+- **The wrench in flight.** It came back to him while he ran (`thrown` 1 → 0 51 ticks after the
+  throw) and while he jumped, with no catch frame queued on the run or the jump.
+- **Left alone, the throw** stood at frame 96 with the mod (rac1 91), as rac2's does.
+
+**Veldin, by the crates and the toads** (NTSC-U; PAL the same apart from which toad). The probe
+also took `rac1.moby.record_death` (read only, the original always called) and logged each crate
+and toad that died:
+
+| | rac1 | rac1 with the mod |
+|---|---|---|
+| The combo into the two crates | both broken, at the same tick as with the mod | both broken |
+| The slam by the toads | a toad killed | a toad killed (the same one on NTSC-U) |
+| Square, stick left | 36 in the swing, then idle | 26, then the run |
+| L2 held, stick right, Square | first-person look (L2 is rac1's look); with the mod and `wrench` off: the strafe, the swing 38 ticks, then standing | the strafe; the swing, 28 ticks to frame 26, turning toward the stick; then strafing again |
+
+rac2 with R2 held, the stick right and Square (Oozla): the swing, 28 ticks to frame 26, then the
+run, strafing. The mod's swing covered 1.04 units, rac2's 1.07.
+
+The mod's trace said which steer it made each tick:
+- `swing-chain-for-stay steer-frame` at the first swing's frame 25;
+- `swing-run-for-stay steer-frame` running out;
+- `swing-stay-for-idle steer-hold` for the third swing's frames 21 to 26 and the throw's 91 to 96;
+- `square-buffer` for the Square one poll after X;
+- `wrench-out` once per throw.
+
+**Nothing else moved.** The standard movement route (above) with 0.3.0 at its defaults, `wrench`
+on, against 0.2.1 (built from tag `rac1-enhanced-movement-v0.2.1`, `c1a8b55`), compared tick by
+tick on position, rotation, state and camera:
+
+| | NTSC-U | PAL |
+|---|---|---|
+| Veldin | 901 ticks, 0 differ | 901 ticks, 0 differ |
+| Novalis | 901 ticks, 0 differ | |
+| Kerwan | 901 ticks, 0 differ | |
+| Every setting off against no mod (Veldin) | 901 ticks, 0 differ, no hooks taken | 901 ticks, 0 differ, no hooks taken |
+
+So the run (5.95 u/s, 90% in 19 ticks), the stop, the half stick, the turnaround, the flips and the
+strafe give the numbers above unchanged.
+
+### The camera (0.3.0)
+
+The camera's turn was measured from the trace's forward row (`fw`), each tick, in rac1 without the
+mod, with each `camera` choice (the other settings at their defaults), and in OpenRAC's rac2 port
+on the same route (Oozla, level 1; the rac2 routes as the wrench's above). rac1 ran on Veldin
+(level 0) on both discs.
+
+```sh
+CAM="c60:0:45:128:128:255:128,c165:0:45:128:128:0:128,c270:0:60:128:128:200:128,c390:0:40:128:128:128:0,c470:0:40:128:128:128:255,c560:0:6:128:128:255:128"
+tools/playtest.sh /tmp/pt cam_modern 0 '{"camera": "modern"}' ROUTE="$CAM" CF=640
+tools/playtest.sh /tmp/pt cam_rac2_fast 0 '{"camera": "rac2"}' ROUTE="$CAM" CF=640 OPENRAC_WRITE="1:15EDE4:2:30000"
+python3 tools/playtest_analyze.py --camera /tmp/pt/cam_modern.jsonl 165 44 270 60 560 6 390 40
+```
+
+The route (the right stick, `RX:RY` after the left stick's `LX:LY`): full right, then full left, for
+45 ticks each; a third of the way right (200: 0.33 past the dead zone) for 60; up, then down, for 40
+each; a 6-tick flick. The turn to the right ran into scenery on Oozla in rac2, so the tables use the
+turn to the left. The game's camera speed option was left at its default, the middle step, or set to
+the fast step by `OPENRAC_WRITE` (rac1's `opt_cam_yaw_rate`, NTSC `0x0015EDE4`, PAL `0x0015EEE4`;
+rac2's at `0x001A7BB4`). `OPENRAC_WATCH` read the camera's numbers in the running games: rac1's table
+1.0 / 1.3 / 1.6 degrees and option 1, the springs 0.015 / 0.2 and the pitch's steps 0.02 / 0.01 /
+0.0305 on both discs; rac2's table 1.0 / 1.3 / 2.2 and option 1.
+
+**Full stick, the game's default camera speed** (degrees a second; ticks from the press):
+
+| | Yaw held | Half of it after | 90% after | Coasted after letting go | Stopped after | A third of the stick |
+|---|---|---|---|---|---|---|
+| rac1 without the mod | 77.5 | 11 | 24 | 16.1 degrees | 32 | 25.7 |
+| rac2, its own port | 77.5 | 11 | 24 | 16.1 | 31 | 25.7 |
+| `camera` `rac1` | 77.5 | 11 | 24 | 16.1 | 32 | 25.7 |
+| `camera` `rac2` | **131.2** | 11 | 24 | 27.3 | 33 | 43.5 |
+| `camera` `modern` | **234.0** | **2** | **6** | **9.7** | **11** | 76.2 |
+
+**The fast step:**
+
+| | Yaw held | 90% after | Coasted | A third of the stick |
+|---|---|---|---|---|
+| rac1 without the mod, and `rac1` | 95.4 | 24 | 19.8 | 31.7 |
+| rac2, its own port | 131.0 | 24 | 27.3 | 43.5 |
+| `camera` `rac2` (every step) | 131.2 | 24 | 27.3 | 43.5 |
+| `camera` `modern` | 288.0 | 6 | 11.9 | 93.8 |
+
+PAL v2.00 gave every number in both tables to the decimal (OpenRAC runs it at 60 Hz).
+
+`camera` `rac2` is Going Commando's fastest step on every step of the game's option (PLAN.md section
+10). Re-measured on 2026-11-14 with that: 131.2 degrees a second, 90% after 24 ticks and 27.3 coasted,
+on the default step (NTSC-U and PAL), the fast step (NTSC-U) and the slow step (PAL,
+`OPENRAC_WRITE="1:15EEE4:0:30000"`), as rac2's own port on its fastest step (131.0, 27.3).
+
+- **The 6-tick flick**: rac1 and rac2's port 16.6 degrees a second held (the ramp has not got going),
+  6.6 degrees coasted, stopped 34 ticks later; `rac2` 28.2, 11.2, 35; `modern` 191.3, 6.1, 11.
+- **The pitch** (the stick up for 40 ticks from level, -6 degrees): rac1 and `rac2` reach -30.5 at
+  58.6 degrees a second at the fastest, still moving when the stick lets go, and come back to -27.7
+  40 ticks later; rac2's port the same (58.9, -25.7). `modern` reaches the game's 40-degree limit
+  (-60.1; 90% of the way after 20 ticks) at up to 207.9 a second, and comes back to -9.7 in 40 ticks: the
+  game's return, three times as quick.
+- **Modern's spring**: `OPENRAC_WATCH` showed rac1's springs at 0.2 / 0.7 from the press until 20
+  ticks after letting go, then 0.015 / 0.2 again.
+- **First person** (L1 held, the right stick full right): 87.4 degrees a second in rac1 and in rac2's
+  port, half after 15 ticks; at a third of the stick 9.5 in both. The same with every choice: the
+  setting does not touch it.
+- **Clank** (Orxon, the standard route's right-stick turn at c760): 76.8 degrees a second without
+  the mod, 234.0 with `modern`.
+- **The camera alone** (every other setting off, `camera` `modern`): the mod took
+  `rac1.pad.process_report` and `rac1.camera.follow.apply_overrides` only, and turned at 234.0.
+
+**Strafing with the camera** (`c60:100:30:128:128,c90:100:40:128:128:255:128,c130:100:40:128:128,c170:100:60:0:128:255:128,c230:100:30:128:128`:
+L2 held standing and the right stick full right, then circle-strafing, the left stick left and the
+right stick right):
+
+| | Standing: camera | Facing off the camera (mean / most) | Circling: camera | Facing off the camera |
+|---|---|---|---|---|
+| `rac1` | 60.5 degrees a second | 8.6 / 14.6 degrees | 71.2 | 8.0 / 10.4 |
+| `modern` | 232.1 | 27.4 / 30.7 | 159.0 | 17.9 / 26.9 |
+
+Under `modern` he still strafes and faces the camera, on Going Commando's strafe turn (DESIGN.md
+4.1), whose lag grows with the camera's speed. `rac1` played this route tick for tick as the build
+before the camera did. `rac2` at Going Commando's fastest step, measured on 2026-11-14 as the hold's
+last third and the facing off the camera over each hold (by that measure `rac1` gives 76.5 and 7.6 /
+14.6 standing, 78.2 and 7.0 / 10.4 circling): 129.5 degrees a second and 11.0 / 17.4 standing, 132.4
+and 11.4 / 15.0 circling.
+
+**Nothing else moved.** With `camera` `rac1` (and, before `rac2` took Going Commando's fastest step,
+with `rac2` on the game's default camera speed), compared tick by tick on position, rotation, state and camera against the build before the camera
+(0.3.0's wrench alone, `PACKAGE=` pointing `tools/playtest.sh` at it; `--same`):
+
+| Route | NTSC-U | PAL |
+|---|---|---|
+| The standard route, Veldin | 901 ticks, 0 differ (both choices) | 901 ticks, 0 differ (both) |
+| Novalis, Kerwan, Orxon | 901 ticks each, 0 differ (both) | |
+| The wrench combo route, Novalis | 701 ticks, 0 differ (both); `--swings` the same | 701 ticks, 0 differ (both) |
+| Every setting off, `camera` `rac1`, against no mod | 901 ticks, 0 differ, no hooks taken | 901 ticks, 0 differ, no hooks taken |
+
+With `rac2` at Going Commando's fastest step (2026-11-14): the wrench combo route, 701 ticks, 0
+differ; the standard route on Veldin, 141 of 901 differ on both discs, the first at c760, the right
+stick's first turn of the camera.
+
+So the movement and wrench numbers above stand. With `modern` the standard route first differs at
+c760 on both discs, the tick the right stick first turns the camera; Ratchet himself first differs at
+c827 (PAL c830), where the strafe held standing turns him to the camera the stick had turned further.
+
 ## Not covered by script
 
 These need a save that has reached them, or a teleport the route does not do yet:
@@ -137,7 +339,15 @@ These need a save that has reached them, or a teleport the route does not do yet
 - the hoverboard (Rilgar);
 - Kalebo III's arena camera;
 - Clank and Giant Clank;
-- grind rails and the Swingshot.
+- grind rails and the Swingshot;
+- the wrench on ice, on magnet ground (Magneboots) and in the grind rails' attack;
+- the camera with a real stick or gyro (steam-deck-pack) rather than scripted full and partial
+  deflections, Giant Clank's camera, and `modern` beside modern-controls (the README says to set
+  `rac1` with it).
+
+The slam's drive from more than 4 above the ground and the lock-on turn's 16.93 rad/s are checked by
+the unit and load tests only. No route slams from that high, and a turn toward a moving target does
+not show its rate.
 
 The load test covers each of their early returns (vehicle mode, control modes, a camera that is not
 the follow camera). Play them once by hand.

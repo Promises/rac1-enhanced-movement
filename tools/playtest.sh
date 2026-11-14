@@ -16,7 +16,9 @@
 #
 # The port and its data: DISC (ntsc, the default, or pal: the program openrac-rac1-DISC), OPENRAC (an
 # OpenRAC checkout with port/build/release built, default ../OpenRAC), DATA (the disc's data folder as
-# the launcher or tools/extractor.py writes it, default ~/OpenRAC/active/rac1/data). LEVELS
+# the launcher or tools/extractor.py writes it, default ~/OpenRAC/active/rac1/data), PACKAGE (the
+# mod's package folder to run, default this checkout's build/package/rac1_enhanced_movement: another
+# build's, to compare the two). LEVELS
 # (an export of the levels, OpenRAC's assets/port/rac1/ntsc) makes the port draw the world, for
 # OPENRAC_SHOT pictures; the movement does not need it.
 set -euo pipefail
@@ -53,7 +55,7 @@ MODS=(--no-mods)
 # The mod from this checkout's build, listed with the settings asked for.
 if [ "$SETTINGS" != none ]; then
     mkdir -p "$OUT/plugins-$NAME"
-    ln -sfn "$HERE/build/package/rac1_enhanced_movement" "$OUT/plugins-$NAME/rac1-enhanced-movement"
+    ln -sfn "${PACKAGE:-$HERE/build/package/rac1_enhanced_movement}" "$OUT/plugins-$NAME/rac1-enhanced-movement"
     printf '{"format": 1, "mods": [{"id": "rac1-enhanced-movement", "enabled": true, "settings": %s}]}\n' \
         "$SETTINGS" > "$OUT/plugins-$NAME/plugins.json"
     MODS=(--plugins "$OUT/plugins-$NAME/plugins.json")

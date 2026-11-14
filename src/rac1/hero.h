@@ -9,36 +9,48 @@
 
 /* The hero (g_hero). */
 enum {
-    BM_HERO_FACING = 0x98,        /* motion.rot.z */
-    BM_HERO_MOMENTUM = 0x150,     /* motion.momentum, a vector; idle slides out on it */
-    BM_HERO_SPEED_XY = 0x160,     /* motion.speed_xy: the run's exit tests it against 2.7 */
-    BM_HERO_FLAT_SPEED = 0x164,   /* motion.flat_speed */
-    BM_HERO_MOVE_YAW = 0x180,     /* motion.move_yaw: the stick's yaw plus the camera's */
-    BM_HERO_YAW_RATE = 0x184,     /* motion.yaw_rate */
-    BM_HERO_YAW_ERROR = 0x188,    /* motion.yaw_error: move yaw less facing after the turn */
-    BM_HERO_TARGET_SPEED = 0x190, /* target_speed */
-    BM_HERO_GROUND_SPEED = 0x194, /* ground_speed */
-    BM_HERO_STATE_TIMER = 0x198,  /* state_timer: ticks in the state */
+    BM_HERO_FACING = 0x98,           /* motion.rot.z */
+    BM_HERO_MOMENTUM = 0x150,        /* motion.momentum, a vector; idle slides out on it */
+    BM_HERO_SPEED_XY = 0x160,        /* motion.speed_xy: the run's exit tests it against 2.7 */
+    BM_HERO_FLAT_SPEED = 0x164,      /* motion.flat_speed */
+    BM_HERO_MOVE_YAW = 0x180,        /* motion.move_yaw: the stick's yaw plus the camera's */
+    BM_HERO_YAW_RATE = 0x184,        /* motion.yaw_rate */
+    BM_HERO_YAW_ERROR = 0x188,       /* motion.yaw_error: move yaw less facing after the turn */
+    BM_HERO_TARGET_SPEED = 0x190,    /* target_speed */
+    BM_HERO_GROUND_SPEED = 0x194,    /* ground_speed */
+    BM_HERO_STATE_TIMER = 0x198,     /* state_timer: ticks in the state */
+    BM_HERO_GROUND_DISTANCE = 0x2DC, /* ground_distance: how far above the ground */
     BM_HERO_UNK308 =
         0x308, /* s16: a magnet-ground mode the run tests before moving along the stick */
     BM_HERO_AIR_FRAMES = 0x30E,       /* s16: ticks off the ground */
     BM_HERO_TURNAROUND = 0x3BE,       /* s16 unk3BE: the run's turnaround */
     BM_HERO_PAST_APEX = 0x41E,        /* s16 past_jump_apex */
+    BM_HERO_RAIL_LAND = 0x418,        /* s32 rail_land_frames: the wrench takes Square as on foot */
     BM_HERO_TAKEOFF_FRAME = 0x420,    /* takeoff_frame */
     BM_HERO_AIR_STICK_SPEED = 0x424,  /* air_stick_speed */
     BM_HERO_FRAMES_TO_LAND = 0x44C,   /* frames_to_land */
     BM_HERO_AIR_TARGET_SPEED = 0x454, /* air_target_speed: state 0xB's push along the takeoff yaw */
+    BM_HERO_UNK450 = 0x450,           /* s32 unk450: 3 for one high jump, its Square comes later */
     BM_HERO_DRIFT_SPEED = 0x458,      /* high_jump_drift_speed */
-    BM_HERO_PUSH = 0x930,       /* f32 unk930: a push (a conveyor) the run adds to its target */
-    BM_HERO_ANIM_SPEED = 0xA90, /* anim_speed */
-    BM_HERO_ANIM_RATE = 0xA94,  /* anim_frame_rate: the current key's rate */
+    BM_HERO_PUSH = 0x930,          /* f32 unk930: a push (a conveyor) the run adds to its target */
+    BM_HERO_MELEE_TARGET = 0xA54,  /* melee_target: the moby a swing or the slam goes for */
+    BM_HERO_ATTACK_RECORD = 0xA60, /* s32 attack_record: the swing's row of attack_records */
+    BM_HERO_ANIM_SPEED = 0xA90,    /* anim_speed */
+    BM_HERO_ANIM_RATE = 0xA94,     /* anim_frame_rate: the current key's rate */
+    BM_HERO_ANIM_FLAGS = 0xA98, /* s32 anim_flags: 2 when the animation came to its end this tick */
+    BM_HERO_ANIM_CHANGING = 0xA9C,    /* s32 anim_changing: a new animation is blending in */
     BM_HERO_ANIM_BLEND_CURVE = 0xAA0, /* s32: -1 unless a scripted blend runs */
-    BM_HERO_ANIM_LOOP_FRAME = 0xAB0,  /* s32: -1 unless a loop is requested */
-    BM_HERO_ANIM_QUEUED = 0xAB8,      /* s32 queued_frame_request: 0 unless a frame is queued */
+    BM_HERO_ANIM_FRAME = 0xAA8, /* f32 anim_frame: the animation's frame, worked out each tick */
+    BM_HERO_ANIM_LOOP_FRAME = 0xAB0, /* s32: -1 unless a loop is requested */
+    BM_HERO_ANIM_QUEUED = 0xAB8,     /* s32 queued_frame_request: 0 unless a frame is queued */
+    BM_HERO_ITEM_MOBY = 0x1090,      /* item slot 0's moby: none, no item in hand */
+    BM_HERO_ITEM_THROWN =
+        0x10AA, /* u8 item slot 0's thrown: the wrench is out (launch_hero_wrench) */
     BM_HERO_ITEM_STATE =
         0x10B4, /* item slot 0's state: 2 when the item is in hand (hero_slot_item_id) */
     BM_HERO_ITEM_ID = 0x10B8,      /* item slot 0's item id */
     BM_HERO_ON_ICE = 0x12E2,       /* u8 on_ice_ground */
+    BM_HERO_ON_SLIP = 0x12EA,      /* u8 on_slip_ground: the wrench takes no Square there */
     BM_HERO_STICK_X = 0x1D20,      /* the stick, x right */
     BM_HERO_STICK_Y = 0x1D24,      /* and y down */
     BM_HERO_MOBY = 0x2080,         /* the hero's moby */
@@ -77,6 +89,7 @@ enum {
     BM_PAD_R2 = 0x0002,
     BM_PAD_R1 = 0x0008,
     BM_PAD_CROSS = 0x0040,
+    BM_PAD_SQUARE = 0x0080,
     BM_PAD_FLICK = 0x10000,
 };
 
@@ -100,7 +113,13 @@ enum {
 
 /* The camera record in use, and the hero's joint pose records. */
 enum {
-    BM_CAMERA_VARS = 0x70,     /* its variables: the recentre timers at +0x12, +0x14, +0x16 */
+    BM_CAMERA_VARS = 0x70, /* its variables: the recentre timers at +0x12, +0x14, +0x16 */
+    /* The follow camera's variables: its turn's flags (+0x1A8 + 0x10, follow_camera_read_stick: 1 the
+     * stick does not turn it, 2 it does not pitch it). */
+    BM_CAMERA_TURN_FLAGS = 0x1B8,
+    /* Its pitch's aim (+0x1A8 + 8, follow_camera_turn_and_pitch): the share of 40 degrees the stick asks
+     * for, eased; 0 at rest. */
+    BM_CAMERA_PITCH_AIM = 0x1B0,
     BM_CAMERA_KIND = 0x86,     /* s16: 0 the follow camera */
     BM_POSE_RECORD = 0xB0,     /* one record */
     BM_POSE_TARGET_YAW = 0x68, /* the target's z: a yaw (targets at +0x60) */

@@ -6,7 +6,7 @@
  *   OpenRAC's PAL build names functions as rac1-decomp does.
  * - NTSC-U v1.00 (SCUS-97199, "ntsc"): the same globals and functions at the US addresses, from
  *   OpenRAC's port/game/rac1-ntsc/host/rac1_version.h, rac1-decomp's config/names_ntsc.tsv and
- *   config/overlays/us_map.tsv, and the NTSC decomp's own C (DESIGN.md section 5).
+ *   config/overlays/us_map.tsv, and the NTSC decomp's own C (DESIGN.md section 6).
  */
 #ifndef RAC1_ENHANCED_MOVEMENT_DISCS_H
 #define RAC1_ENHANCED_MOVEMENT_DISCS_H
@@ -25,6 +25,7 @@ typedef struct bm_disc {
     uint32_t frame_time;     /* g_frame_time: seconds a tick */
     uint32_t frame_time_sq;  /* g_frame_time_sq */
     uint32_t frame_scale;    /* frame_scale: rac1's tick counts are scaled by it (scale_ticks) */
+    uint32_t cam_option;     /* opt_cam_yaw_rate: the game's camera speed option, 0 to 2 */
 
     /* Level 0's program's, through relocate_level_data(0, ...). */
     uint32_t cinematic_mode; /* 0 in play; movies, scenes, the ship's entry otherwise */
@@ -32,6 +33,16 @@ typedef struct bm_disc {
     uint32_t follow_cam;     /* g_current_follow_cam: the camera record in use (+0x86 its kind) */
     uint32_t blend_weight;   /* follow_cam_turn_blend_weight: the camera's turn to his heading */
     uint32_t pose_table;     /* hero_eases: the hero's joint pose records, 0xB0 bytes each */
+
+    /* The follow camera's, level 0's program's too (DESIGN.md section 8). */
+    uint32_t cam_gain;        /* follow_cam_setting_value: the turn's gain, set from the table */
+    uint32_t cam_pitch_out;   /* follow_camera_pitch_input_tracking_step_limit */
+    uint32_t cam_pitch_back;  /* follow_camera_pitch_input_return_step_limit */
+    uint32_t cam_pitch_step;  /* follow_camera_pitch_angle_step_limit */
+    uint32_t cam_yaw_accel;   /* orbit_yaw_spring_stiffness: the eye's yaw after the orbit */
+    uint32_t cam_yaw_damp;    /* orbit_yaw_spring_damping */
+    uint32_t cam_pitch_accel; /* orbit_pitch_spring_stiffness */
+    uint32_t cam_pitch_damp;  /* orbit_pitch_spring_damping */
 
     /* The game's functions it calls: each is one function in every level (us_map.tsv). */
     const char* orbit_clamp;    /* void (int): set_follow_camera_orbit_clamp_mode */
@@ -49,11 +60,20 @@ static const bm_disc k_bm_discs[] = {
         0x0015EE6Cu, /* g_frame_time */
         0x0015EE70u, /* g_frame_time_sq */
         0x0015EE60u, /* frame_scale */
+        0x0015EEE4u, /* opt_cam_yaw_rate (follow_camera_update's vendor_stock[5]) */
         0x0015F6A8u, /* D_L00_0015F6A8 cinematic_mode */
         0x00166ED8u, /* D_L00_00166ED8 camera_yaw */
         0x00166F00u, /* D_L00_00166F00 g_current_follow_cam */
         0x0015F040u, /* D_L00_0015F040 follow_cam_turn_blend_weight */
         0x0017A780u, /* D_L00_0017A780 hero_eases */
+        0x0015F044u, /* D_L00_0015F044 follow_cam_setting_value */
+        0x00161D8Cu, /* D_L00_00161D8C follow_camera_pitch_input_tracking_step_limit */
+        0x00161D90u, /* D_L00_00161D90 follow_camera_pitch_input_return_step_limit */
+        0x00161D94u, /* D_L00_00161D94 follow_camera_pitch_angle_step_limit */
+        0x00161DC4u, /* D_L00_00161DC4 orbit_yaw_spring_stiffness_gp */
+        0x00161DC8u, /* D_L00_00161DC8 orbit_yaw_spring_damping_gp */
+        0x00161DCCu, /* D_L00_00161DCC orbit_pitch_spring_stiffness_gp */
+        0x00161DD0u, /* D_L00_00161DD0 orbit_pitch_spring_damping_gp */
         "func_L00_002E9A18",
         "func_L00_002E9AF8",
         "func_L00_002E9A40",
@@ -67,11 +87,20 @@ static const bm_disc k_bm_discs[] = {
         0x0015ED6Cu,
         0x0015ED70u,
         0x0015ED60u,
+        0x0015EDE4u, /* opt_cam_yaw_rate: the NTSC decomp's rnc/game/options.h */
         0x0015F5C4u,
         0x00166DD8u,
         0x00166E00u,
         0x0015EF40u,
         0x0017A680u,
+        0x0015EF44u, /* the NTSC decomp's follow_camera_update (D_L00_0015EF44) */
+        0x00161CBCu, /* the NTSC decomp's follow_camera_turn_and_pitch_globals.h: this and the next two */
+        0x00161CC0u,
+        0x00161CC4u,
+        0x00161CF4u, /* names_ntsc.tsv (orbit_yaw_spring_stiffness_gp at US 0x00161CF4): this and the next three */
+        0x00161CF8u,
+        0x00161CFCu,
+        0x00161D00u,
         "FUN_L00_002e8568",
         "FUN_L00_002e8648",
         "FUN_L00_002e8590",

@@ -7,7 +7,8 @@
 - id and version: src/version.h's;
 - games: the discs src/rac1/discs.h has rows for;
 - settings: every key game.cpp reads, with the type it reads it as, each default within its own
-  choices, the strafe's choices those strafe_buttons() knows, trace for each player alone;
+  choices, the strafe's choices those strafe_buttons() knows and the camera's those camera_choice()
+  knows (each falls back to its manifest default), trace for each player alone;
 - hooks: the ids of the hook point types game.cpp takes (openrac/games/rac1.hpp names them).
 """
 from __future__ import annotations
@@ -68,10 +69,14 @@ def main() -> int:
             values = [c["value"] for c in s["choices"]]
             expect(s["default"] in values, f"{key}'s default {s['default']} is not a choice")
 
-    # The strafe's choices: strafe_buttons() names each but the default it falls back to.
-    named = set(re.findall(r'v == "(\w+)"', game))
-    strafe_values = {c["value"] for c in settings["strafe"]["choices"]}
-    expect(named | {"both"} == strafe_values, f"strafe choices {sorted(strafe_values)} against game.cpp's {sorted(named)}")
+    # Each choice's values: its function in game.cpp names each but the default it falls back to.
+    for key, function in (("strafe", "strafe_buttons"), ("camera", "camera_choice")):
+        body = re.search(function + r"\(const std::string& \w+\) \{(.*?)\n\}", game, re.S)
+        named = set(re.findall(r'\w+ == "(\w+)"', body.group(1))) if body else set()
+        values = {c["value"] for c in settings[key]["choices"]} if key in settings else set()
+        expect(body is not None, f"no {function}() in game.cpp")
+        expect(named | {settings.get(key, {}).get("default")} == values,
+               f"{key} choices {sorted(values)} against {function}()'s {sorted(named)} and the default")
     expect(settings["trace"].get("multiplayer") == "own", "trace is each player's own")
 
     # The hooks: the types game.cpp takes, by id.

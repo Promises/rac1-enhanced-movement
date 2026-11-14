@@ -4,9 +4,12 @@ Ratchet moves as in **Ratchet & Clank: Going Commando**, in the first
 Ratchet & Clank on [OpenRAC](https://github.com/OpenRAC/OpenRAC)'s native port:
 - Going Commando's running and stopping, and its turning;
 - more control in the air;
-- Going Commando's strafe on L2 or R2, with its side and back flips and hip twist.
+- Going Commando's strafe on L2 or R2, with its side and back flips and hip twist;
+- Going Commando's wrench timing: the combo, the throw and the slam;
+- a choice of how fast the right stick turns the camera: the first game's,
+  Going Commando's, or a modern speed three times as fast.
 
-The jump heights stay the first game's, so every level plays as it was built.
+The jump heights and the wrench's damage stay the first game's, so every level plays as it was built.
 
 How each part was taken from Going Commando's code, with its evidence:
 [DESIGN.md](DESIGN.md). The plan the mod was built to: [PLAN.md](PLAN.md).
@@ -59,6 +62,57 @@ jump (3.5 before). Heights, gravity and the pack jumps are the first game's.
 - **L1** still looks in first person and **R1** still crouches. With *L2 only*
   or *R2 only*, the other button stays the game's.
 
+**Wrench** (setting *Going Commando wrench*): the first game's wrench, with
+Going Commando's timing. The two games share the moves, the lunges and the
+hits. What differs is when a swing chains or can be left:
+
+- **Square is remembered longer**: 10 frames when standing or running (7
+  before) and 14 in a jump (10 before), so a Square pressed a little early
+  still swings or slams.
+- **The combo**: the second swing chains a little sooner. With the stick
+  pushed you run out of a swing as soon as Going Commando lets you: out of the
+  first swing 10 frames sooner (26 against 36), out of the second 16 sooner
+  (24 against 40). Left alone, the third swing holds a little longer, as in
+  Going Commando.
+- **The throw** (R1 + Square): once the wrench leaves his hand you can run
+  (stick pushed fully) or jump while it flies back to you. Before, he stood
+  still until he caught it. While it is out, Square does nothing, as in Going
+  Commando, where the first game would still slam without a wrench.
+- **Locking on** to an enemy turns him 13% faster (16.9 against 15.0 radians a
+  second).
+- **The slam** from high up (more than 4 above the ground) keeps driving
+  forward at 4.5 units a second, as in Going Commando.
+- **Square while strafing** swings toward the stick as usual, and he strafes
+  again after it.
+
+Damage is the first game's, so its enemies and bosses take the hits they were
+built for. Hit timing, the throw's flight and its reach are the same in both
+games.
+
+**Camera** (setting *Camera rotation*): how fast the right stick turns the
+camera behind Ratchet (the follow camera, Clank's too).
+
+- **Going Commando** (the default): Going Commando's fastest camera, 132
+  degrees a second at full stick, whatever the game's own camera speed is set
+  to. Going Commando turns its camera with the first game's code and numbers,
+  all but one: on the game's camera speed (Options, Camera: three steps, the
+  middle one by default) the slow and middle steps are the same in both games,
+  60 and 78 degrees a second, and only the fast step is quicker in Going
+  Commando, 132 against 96. Since its default would change nothing, this choice
+  takes Going Commando's top speed on every step.
+- **Ratchet & Clank**: the game's own: 60, 78 or 96 degrees a second by the
+  game's camera speed.
+- **Modern**: three times the game's own speed, 234 degrees a second on the
+  middle step (180 on the slow one, 288 on the fast one), in the range current
+  third-person games turn at. The camera follows the stick closely: 90% of its
+  speed within a tenth of a second, and it stops within a fifth of a second of
+  letting go, where the first game's camera coasts on for half a second. The
+  up and down look is three times as quick too, within the game's own limits.
+- **Ratchet & Clank**: the first game's camera, untouched.
+
+First person (L1) is the same in both games and stays the game's in every
+choice. The game's camera invert options keep working.
+
 **Swimming** is the same code with the same numbers in both games, so it is
 unchanged.
 
@@ -71,16 +125,31 @@ unchanged.
 | `strafe` | choice: `both`, `l2`, `r2`, `off` | `both` | the button held to strafe: L2 or R2, one of them, or no strafe |
 | `flips` | bool | on | X while strafing with the stick fully sideways or back flips that way |
 | `twist` | bool | on | strafing, his hips turn toward where he goes |
-| `trace` | bool | off | for bug reports: one line in the game's log each tick with what the mod decided and every input it used (`OPENRAC_ENHANCED_MOVEMENT_TRACE=1` in the environment does the same). Each player's own |
+| `wrench` | bool | on | Going Commando's wrench timing: longer Square windows, running and jumping out of swings and the throw sooner, the faster lock-on turn, the slam's drive (damage stays) |
+| `camera` | choice: `rac1`, `rac2`, `modern` | `rac2` | how fast the right stick turns the camera: the first game's (78 degrees a second by default), Going Commando's fastest (132), or three times the game's speed (234 by default) with the camera following the stick closely |
+| `trace` | bool | off | for bug reports: one line in the game's log each tick with what the mod decided and every input it used, and one for the camera's update when the stick turns it or the mod changes its speed (`OPENRAC_ENHANCED_MOVEMENT_TRACE=1` in the environment does the same). Each player's own |
 
-Settings count from the game's next start. With everything off, the mod takes
-no hooks and the game plays exactly as the PlayStation 2's.
+Settings count from the game's next start. With everything off and the camera
+on *Ratchet & Clank*, the mod takes no hooks and the game plays exactly as the
+PlayStation 2's.
 
 ## Other mods
 
 - **lock-strafe** also strafes on L2/R2 and takes the same hook points. The
   manifest declares the conflict, so turn one of them off.
+- **wrench-throw** throws the wrench with R2 + Square, so it needs R2 on foot,
+  which this mod's strafe takes by default. Set *Strafe button* to *L2 only*
+  to use both: L2 strafes and R2 is wrench-throw's. With both on R2, one of
+  the two R2 uses does nothing.
 - **rac1-better-movement** is this mod's old name (0.1.0 and 0.2.0): remove it.
+- **modern-controls** turns the camera with the right stick itself, at its own
+  speed. Set *Camera rotation* to *Ratchet & Clank* to use both, so only one of
+  the two sets the camera's speed. It also changes the movement's speed and
+  acceleration through a hook point this mod shares; that pairing was not
+  play-tested.
+- **steam-deck-pack** turns the gyro and right trackpad into the right stick,
+  so this mod's camera speed applies to them too (three times as fast with
+  *Modern*); lower the pack's own sensitivity if that is too quick.
 - **difficulty**: its *Ratchet speed* slider keeps working. Going Commando's
   speeds are scaled by it, in either load order.
 - The mod shares these hook points:
@@ -115,11 +184,32 @@ no hooks and the game plays exactly as the PlayStation 2's.
   from a wall), on magnetic walls (Magneboots), and in the long jump, as in
   Going Commando.
 - **On ice**, and on a conveyor or other push, the first game's running stays.
+- **The wrench, not ported** (each is inside game code no hook point reaches,
+  or would need a guess):
+  - Going Commando keeps the combo going after a short run (under 27 frames
+    in all); here a swing after a run starts the combo again;
+  - Going Commando's thrown wrench carries a little more of his own speed and
+    snaps back to him past 32 units;
+  - the slam keeps driving on a few ground types in Going Commando;
+  - a swing stops at a ledge a little later in Going Commando.
+- **Running out of a swing** takes one frame longer than in Going Commando:
+  the first game's own code stands for a frame, then runs.
+- **The camera, left as the first game's:**
+  - first person (L1), the same in both games;
+  - the stick's dead zone (the same in both games), which the whole game reads;
+  - how hard the camera is pulled round behind him as he runs, and how long a
+    swing toward a point of interest waits after the right stick moves: Going
+    Commando's differ a little, but neither is the turn's speed.
+- **Modern and the strafe:** strafing while the camera turns fast, Ratchet
+  turns after it on Going Commando's own strafe turn, up to about 30 degrees
+  behind at full stick, and catches up as the camera slows.
 - **Steered transitions.** The mod never calls the game's state changes. For
   one tick it sets what the game's own transition code reads (the state timer,
-  a speed, the stick, and for a flip R1 and a stick press beside X), and puts
-  each back right after. So each planet's own code makes the change. With
-  `trace` on, the log shows each such tick.
+  a speed, the stick, and for a flip R1 and a stick press beside X; for the
+  wrench the animation's frame or its blend flag, and Square or X in the pad's
+  history), and puts each back right after. So each planet's own code makes the change. With
+  `trace` on, the log shows each such tick. The camera is steered the same way: its turn's speed,
+  and for *Modern* its pitch steps and how closely it follows, are set for one update and put back.
 
 ## Building
 
@@ -142,6 +232,18 @@ against it.
 
 ## Notes
 
+- **0.3.0**: Going Commando's wrench (setting *Going Commando wrench*, on by
+  default): Square remembered longer, the combo's chaining and its way out with
+  the stick, running and jumping while a thrown wrench flies back, no Square
+  while it is out, the faster lock-on turn and the slam's drive from high up.
+  Damage stays the first game's. Square and X together while strafing now
+  swing, as in Going Commando, where 0.2 could turn them into a throw. Played
+  against Going Commando itself in OpenRAC's port of it, and on both discs
+  (PLAYTEST.md). And a choice of camera turn speed (setting *Camera rotation*):
+  the first game's, Going Commando's (the default: its fastest camera, 132
+  degrees a second where the first game turns 78 by default), or *Modern*, three times the game's speed (234 degrees a second by
+  default) with the camera following the stick closely. Measured against Going
+  Commando's own camera in its port. Everything else plays exactly as 0.2.1.
 - **0.2.1**: renamed from `rac1-better-movement` (its 0.1.0 and 0.2.0). The
   launcher sees a new mod: remove the old one, then add this one
   (`https://github.com/kmomoney/rac1-enhanced-movement`). The two are marked
