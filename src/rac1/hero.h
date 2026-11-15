@@ -28,6 +28,8 @@ enum {
     BM_HERO_RAIL_LAND = 0x418,        /* s32 rail_land_frames: the wrench takes Square as on foot */
     BM_HERO_TAKEOFF_FRAME = 0x420,    /* takeoff_frame */
     BM_HERO_AIR_STICK_SPEED = 0x424,  /* air_stick_speed */
+    BM_HERO_APEX_FRAME = 0x440,       /* apex_anim_frame: the jump's animation at its apex */
+    BM_HERO_TARGET_FRAME = 0x444,     /* target_anim_frame: and at its landing */
     BM_HERO_FRAMES_TO_LAND = 0x44C,   /* frames_to_land */
     BM_HERO_AIR_TARGET_SPEED = 0x454, /* air_target_speed: state 0xB's push along the takeoff yaw */
     BM_HERO_UNK450 = 0x450,           /* s32 unk450: 3 for one high jump, its Square comes later */
@@ -117,9 +119,6 @@ enum {
     /* The follow camera's variables: its turn's flags (+0x1A8 + 0x10, follow_camera_read_stick: 1 the
      * stick does not turn it, 2 it does not pitch it). */
     BM_CAMERA_TURN_FLAGS = 0x1B8,
-    /* Its pitch's aim (+0x1A8 + 8, follow_camera_turn_and_pitch): the share of 40 degrees the stick asks
-     * for, eased; 0 at rest. */
-    BM_CAMERA_PITCH_AIM = 0x1B0,
     BM_CAMERA_KIND = 0x86,     /* s16: 0 the follow camera */
     BM_POSE_RECORD = 0xB0,     /* one record */
     BM_POSE_TARGET_YAW = 0x68, /* the target's z: a yaw (targets at +0x60) */

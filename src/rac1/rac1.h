@@ -99,6 +99,85 @@
 #define RAC1_CAMERA_SPRING_ACCEL 0.015f
 #define RAC1_CAMERA_SPRING_DAMP 0.2f
 
+/* --- Clank (DESIGN.md section 9) --------------------------------------------------------------- */
+
+/* hero_update_movement, Clank's run (0x44 and 0x50): stick_target(3.0) (the stick times 3 units a
+ * second); speed_step(7.5 * k, 8.5) with k = 1 - 0.3 * |facing - move yaw|; the turn, t = stick +
+ * 0.35: under half the run speed turn_to(0.035 t, 0.15, 9.599311 t), else turn_to(0.008 t, 0.15,
+ * 9.948377 t). Never along the stick (HeroEnterMoveState clears unk3B8 for 0x44 and nothing sets it). */
+#define RAC1_CLANK_RUN_SPEED 3.0f
+#define RAC1_CLANK_RUN_ACCEL 7.5f
+#define RAC1_CLANK_RUN_BRAKE 8.5f
+#define RAC1_CLANK_RUN_K_PER_RADIAN 0.3f
+#define RAC1_CLANK_TURN_STICK_BIAS 0.35f
+#define RAC1_CLANK_TURN_SLOW_SHARE 0.5f
+#define RAC1_CLANK_TURN_SLOW_ACCEL 0.035f
+#define RAC1_CLANK_TURN_SLOW_LIMIT 9.599311f
+#define RAC1_CLANK_TURN_FAST_ACCEL 0.008f
+#define RAC1_CLANK_TURN_FAST_LIMIT 9.948377f
+#define RAC1_CLANK_TURN_DAMP 0.15f
+/* His idle (0x43): speed_step(0, 12.6), the velocity cleared: he stops where he lets go. His punch
+ * (0x51): speed_step(37, 28), the lock-on turn the wrench's turn_to(0.05, 0.2, 15.01), the lunge 3.5
+ * units a second under frame 5.5. His glide (0x4F): stick_target(2.0), turn_to(0.04, 0.2, 8.726646),
+ * speed_step(15, 7). His fall (0x45): stick_target(3.0). */
+#define RAC1_CLANK_IDLE_BRAKE 12.6f
+#define RAC1_CLANK_PUNCH_ACCEL 37.0f
+#define RAC1_CLANK_PUNCH_BRAKE 28.0f
+#define RAC1_CLANK_GLIDE_SPEED 2.0f
+#define RAC1_CLANK_GLIDE_TURN_LIMIT 8.726646f
+/* HeroEnterMoveState, his jump (0x49): heights 1.3 tapped and 1.35 held, takeoff after
+ * scale_ticks(5), the animation's apex at frame 18 and its landing at 27, gravity 25, air stick
+ * speed 2.0 (the run's 3.0 in the fall). */
+#define RAC1_CLANK_JUMP_HEIGHT 1.3f
+#define RAC1_CLANK_JUMP_HEIGHT_HELD 1.35f
+#define RAC1_CLANK_TAKEOFF 5
+#define RAC1_CLANK_APEX_FRAME 18.0f
+#define RAC1_CLANK_TARGET_FRAME 27.0f
+#define RAC1_CLANK_JUMP_GRAVITY 25.0f
+#define RAC1_CLANK_AIR_STICK_SPEED 2.0f
+/* hero_update_transitions, his idle and run: X within scale_ticks(8) jumps, Square within
+ * scale_ticks(9) punches; landing from a jump (past the apex, under 0.2 above the ground) Square
+ * within scale_ticks(5) punches. */
+#define RAC1_CLANK_JUMP_WINDOW 8
+#define RAC1_CLANK_SQUARE_WINDOW 9
+#define RAC1_CLANK_LAND_SQUARE_WINDOW 5
+#define RAC1_CLANK_LAND_SQUARE_HEIGHT 0.2f
+/* attack_records 7 and 8, his two punches (HeroEnterMoveState's 0x51 takes 7 + the chain, the chain
+ * the other record while the last punch's frame is under +0x8): the windows count from +0xC, Square
+ * chains from +0x10, X jumps out after +0x14 within (frame - first) * 2 polls, he stands after +0x18
+ * (with no animation of his own: the punch plays on while idle), and hits from +0x1C to +0x20. Read
+ * from the PAL disc's level programs of levels 0, 6, 10, 15 and 17 and from the NTSC-U game's level 0
+ * (DESIGN.md 9.1): the same in each, and the same as rac2's (rac2.h). +0x10 (12) lies past +0x18
+ * (10): the next punch is chained from idle, whose Square window takes it while the punch's
+ * animation is under frame 16. */
+#define RAC1_CLANK_REC_A 7
+#define RAC1_CLANK_REC_B 8
+#define RAC1_CLANK_REC_CHAIN 16
+#define RAC1_CLANK_REC_FIRST 3
+#define RAC1_CLANK_REC_OPEN 12
+#define RAC1_CLANK_REC_JUMP 8
+#define RAC1_CLANK_REC_EXIT 10
+#define RAC1_CLANK_REC_HIT_FROM 3
+#define RAC1_CLANK_REC_HIT_TO 6
+
+/* Vehicle modes (HeroVehicleMode, +0x20A4): Clank alone, and Giant Clank. */
+enum {
+    RAC1_VEHICLE_CLANK = 1,
+    RAC1_VEHICLE_GIANT_CLANK = 2,
+};
+
+/* Clank's states (HeroStateId's VEHICLE_MODE_1_* and the unnamed ones his transitions enter). */
+enum {
+    RAC1_STATE_CLANK_IDLE = 0x43,
+    RAC1_STATE_CLANK_RUN = 0x44,
+    RAC1_STATE_CLANK_FALL = 0x45,
+    RAC1_STATE_CLANK_JUMP = 0x49,
+    RAC1_STATE_CLANK_LEDGE_JUMP = 0x4C,
+    RAC1_STATE_CLANK_GLIDE = 0x4F,
+    RAC1_STATE_CLANK_RUN_ALT = 0x50, /* his run's code and transitions; nothing enters it */
+    RAC1_STATE_CLANK_PUNCH = 0x51,
+};
+
 /* Hero states (enums/hero_state.h). */
 enum {
     RAC1_STATE_IDLE = 0x0,

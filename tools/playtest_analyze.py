@@ -7,6 +7,7 @@
     python3 tools/playtest_analyze.py --swings RUN.log
     python3 tools/playtest_analyze.py --camera RUN.jsonl START HOLD [START HOLD ...]
     python3 tools/playtest_analyze.py --same A.jsonl B.jsonl
+    python3 tools/playtest_analyze.py --clank RUN.jsonl
 
 For each segment of the route (frames from control), each run's states in order (id x ticks), its top
 speed and how soon it reached 90% of it, the distance covered, how far the facing is from the
@@ -24,6 +25,10 @@ stick (START frames from control, held HOLD): the yaw's rate held (the mean of t
 the ticks to half and 90% of it, the degrees coasted after letting go and the ticks to stop (under 1%
 of the rate); and the pitch's swing, its fastest change and where it is 40 ticks after letting go.
 --same counts the ticks from control where two runs differ in position, rotation, state or camera.
+--clank measures Clank's route (PLAYTEST.md, Clank) from either game's trace (rac2's states read as
+rac1's): the run's top speed, its 90% and its stop, half stick, the turnaround and a 90-degree turn,
+the jump's takeoff, apex and air stick, the running jump, the glide, and the punches' ticks and ways
+out.
 """
 import json, math, re, sys
 
@@ -139,6 +144,101 @@ def same(a_path, b_path):
     differ = [c for c in both if any(a[c].get(f) != b[c].get(f) for f in ("hp", "hr", "hs", "cam", "fw"))]
     print(f"{len(both)} ticks, {len(differ)} differ" + (f", the first at c{differ[0]}" if differ else ""))
 
+# Clank's states in rac2's numbers, as rac1 numbers them (DESIGN.md section 9).
+CLANK_RAC2 = {0x3F: 0x43, 0x40: 0x44, 0x41: 0x45, 0x45: 0x49, 0x48: 0x4C, 0x4B: 0x4F, 0x4D: 0x51}
+
+def clank(path):
+    """Clank's route (PLAYTEST.md, the Clank section), either game's trace: each measure on one line."""
+    rows = load(path)
+    st = lambda c: CLANK_RAC2.get(rows[c]["hs"], rows[c]["hs"]) if c in rows else None
+    pos = lambda c: rows[c]["hp"]
+    vel = lambda c: ((pos(c)[0] - pos(c - 1)[0]) * 60, (pos(c)[1] - pos(c - 1)[1]) * 60)
+    speed = lambda c: math.hypot(*vel(c))
+    facing = lambda c: rows[c]["hr"][2]
+    heading = lambda c: math.atan2(vel(c)[1], vel(c)[0])
+    deg = lambda a: abs(math.degrees(wrap(a)))
+    out = []
+
+    # The run at full stick from c30, let go at c90.
+    run = [speed(c) for c in range(31, 91)]
+    top = sorted(run[30:])[15]  # the median of the run's last half: a nudge off a wall is no speed
+    t90 = next(k + 1 for k, v in enumerate(run) if v >= 0.9 * top)
+    stop = next((c - 90 for c in range(91, 130) if speed(c) < 0.05), None)
+    slid = math.dist(pos(90)[:2], pos(90 + (stop or 39))[:2])
+    out.append(f"run: top {top:.2f} u/s, 90% after {t90} ticks; let go: stopped after {stop} ticks, slid {slid:.3f}")
+
+    # Half stick from c130.
+    half = [speed(c) for c in range(170, 191)]
+    out.append(f"half stick: {sum(half) / len(half):.2f} u/s")
+
+    # The turnaround at c270 (from c230): the new way is back along the run's.
+    back = heading(268) + math.pi
+    along = next((c - 270 for c in range(271, 311) if speed(c) > 0.3 and deg(heading(c) - back) < 45), None)
+    face = next((c - 270 for c in range(271, 311) if deg(facing(c) - back) < 10), None)
+    lost = max(0.0, max((math.cos(back) * (pos(c)[0] - pos(270)[0]) + math.sin(back) * (pos(c)[1] - pos(270)[1])) * -1 for c in range(270, 311)))
+    out.append(f"turnaround: moving the new way after {along} ticks, facing it after {face}, carried {lost:.3f} the old way")
+
+    # The 90-degree turn at c380 (from c350).
+    final = facing(418)
+    turned = deg(final - facing(379))
+    face90 = next((c - 380 for c in range(381, 420) if deg(facing(c) - final) < 10), None)
+    out.append(f"turn: {turned:.0f} degrees, within 10 of it after {face90} ticks")
+
+    # The standing jump at c460, the stick right in the air from c468.
+    z0 = pos(459)[2]
+    up = next((c - 460 for c in range(460, 520) if pos(c)[2] > z0 + 0.01), None)
+    apex = max(pos(c)[2] for c in range(460, 520)) - z0
+    land = next((c for c in range(470, 520) if st(c) != 0x49 and pos(c)[2] < z0 + 0.05), None)
+    air = [speed(c) for c in range(468, (land or 500))]
+    reach = next((k for k, v in enumerate(air) if v >= 0.9 * max(air)), None) if air else None
+    out.append(f"jump: off the ground {up} ticks after X, apex {apex:.3f}, landed after {None if land is None else land - 460} ticks; "
+               f"air stick: {max(air) if air else 0:.2f} u/s, 90% after {reach} ticks")
+
+    # The running jump at c540, the stick held left.
+    zr = pos(539)[2]
+    off = next((c for c in range(540, 600) if pos(c)[2] > zr + 0.01), None)
+    down = next((c for c in range((off or 540) + 3, 610) if pos(c)[2] <= zr + 0.01), None)
+    if off and down:
+        far = math.dist(pos(off)[:2], pos(down)[:2])
+        out.append(f"running jump: {far:.2f} units in {down - off} ticks ({far * 60 / (down - off):.2f} u/s), apex {max(pos(c)[2] for c in range(off, down)) - zr:.3f}")
+
+    # The glide from c632.
+    glide = [c for c in range(620, 720) if st(c) == 0x4F]
+    if glide:
+        fall = (pos(glide[0])[2] - pos(glide[-1])[2]) * 60 / max(len(glide) - 1, 1)
+        out.append(f"glide: {len(glide)} ticks, falling {fall:.2f} u/s")
+
+    # The punches from c720, c820 (the stick pushed) and c880 (X after).
+    def spans(a, b):
+        seq = []
+        for c in range(a, b):
+            s = st(c)
+            if not seq or seq[-1][0] != s:
+                seq.append([s, c, 0])
+            seq[-1][2] += 1
+        return seq
+
+    p = spans(720, 800)
+    out.append("three Squares: " + " ".join(f"{s:#x}x{n}" for s, _, n in p if s != 0x43 or n < 20))
+    q = spans(820, 860)
+    first_run = next((c for s, c, _ in q if s == 0x44), None)
+    out.append(f"Square, stick pushed: {q[0][2]} ticks punching, running after {None if first_run is None else first_run - 820}")
+    r = spans(880, 900 + 20)
+    jumped = next((c for s, c, _ in r if s == 0x49), None)
+    out.append(f"Square then X: jumping after {None if jumped is None else jumped - 880} ticks")
+
+    # Square remembered: a second Square 11 polls into a punch (c980, c991); one 6 polls before the
+    # jump from c1040 nears the ground (c1070).
+    if 1100 in rows:
+        m = spans(980, 1040)
+        out.append("Square at c980 and c991: " + " ".join(f"{s:#x}x{n}" for s, _, n in m))
+        landed = [c for c in range(1060, 1100) if st(c) == 0x51]
+        out.append(f"Square at c1070 in the jump: {'punched on landing at c' + str(landed[0]) if landed else 'no punch'}")
+    print("\n".join(out))
+
+if sys.argv[1] == "--clank":
+    clank(sys.argv[2])
+    sys.exit(0)
 if sys.argv[1] == "--camera":
     args = list(map(int, sys.argv[3:]))
     camera(sys.argv[2], list(zip(args[::2], args[1::2])))

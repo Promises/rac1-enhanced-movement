@@ -184,6 +184,81 @@
 #define RAC2_CAMERA_PITCH_SPRING_ACCEL 0.015f
 #define RAC2_CAMERA_PITCH_SPRING_DAMP 0.2f
 
+/* --- Clank (DESIGN.md section 9) --------------------------------------------------------------- */
+
+/* His run (func_L00_002BA7D8 cases 0x40 and 0x4C; rac1's 0x44 and 0x50). The speed is the stick
+ * times 3 units a second, as rac1's (func_L00_002B39F0(0.05)). rac2 then turns at 0.033 / 0.15 /
+ * 9.95 radians a second at any stick and speed (0.037 / 0.15 / 11.69 in a turnaround), speeds up at
+ * 18 and slows at 20 units a second squared (rac1: 7.5 cut by the turn, and 8.5). Its flags: along
+ * the stick (+0x40C) under 0.7 units a second; a turnaround (+0x40F) there more than 100 degrees off
+ * with the stick past 0.8, or when the stick's angle 0 polls back (the ring's oldest, 30 polls ago)
+ * and 2 back are more than 150 degrees apart, 70 degrees off, the stick past 0.8; along cleared under
+ * 5 degrees, the turnaround under 4. Its cap on the turnaround's speed is written after the speed
+ * step, which the next tick's stick overwrites: it changes nothing. */
+#define RAC2_CLANK_RUN_SPEED 0.050000004f
+#define RAC2_CLANK_TURN_ACCEL 0.033f
+#define RAC2_CLANK_TURN_DAMP 0.15f
+#define RAC2_CLANK_TURN_LIMIT 0.16580631f
+#define RAC2_CLANK_TURNAROUND_ACCEL 0.037f
+#define RAC2_CLANK_TURNAROUND_LIMIT 0.19489513f
+#define RAC2_CLANK_RUN_ACCEL 0.005f
+#define RAC2_CLANK_RUN_BRAKE 0.0055555557f
+#define RAC2_CLANK_ALONG_SPEED 0.011666667f
+#define RAC2_CLANK_TURNAROUND_ANGLE 1.7453294f
+#define RAC2_CLANK_TURNAROUND_STICK 0.8f
+#define RAC2_CLANK_FLICK_FROM 0
+#define RAC2_CLANK_FLICK_TO 2
+#define RAC2_CLANK_FLICK_ANGLE 2.617994f
+#define RAC2_CLANK_FLICK_ERROR 1.2217306f
+#define RAC2_CLANK_FLICK_STICK 0.8f
+#define RAC2_CLANK_ALONG_CLEAR 0.087266475f
+#define RAC2_CLANK_TURNAROUND_CLEAR 0.06981318f
+
+/* The same in both games (clank_test.c checks each against rac1.h): idle's braking 12.6 (0x3F),
+ * the punch's speed step 37 / 28 (0x4D), the glide's stick speed 2 and turn limit 8.73 (0x4B). The
+ * punch's lock-on turn is the wrench's, 16.93 radians a second (rac1 15.01 in both). */
+#define RAC2_CLANK_IDLE_BRAKE 0.0035f
+#define RAC2_CLANK_PUNCH_TURN_LIMIT 0.2821616f
+#define RAC2_CLANK_PUNCH_ACCEL 0.010277778f
+#define RAC2_CLANK_PUNCH_BRAKE 0.007777778f
+#define RAC2_CLANK_GLIDE_SPEED 0.033333335f
+#define RAC2_CLANK_GLIDE_TURN_LIMIT 0.14544412f
+
+/* His jump's entry (func_L00_002C42E0 state 0x45; rac1's 0x49): off the ground after 3 ticks (rac1
+ * 5), its animation's apex and landing frames 15 and 24 (rac1 18 and 27). The heights 1.3 / 1.35,
+ * the gravity 25 and the air stick speed 2 are rac1's. rac2's PAL release counts the takeoff as 2. */
+#define RAC2_CLANK_JUMP_HEIGHT 1.3f
+#define RAC2_CLANK_JUMP_HEIGHT_HELD 1.35f
+#define RAC2_CLANK_TAKEOFF 3
+#define RAC2_CLANK_APEX_FRAME 15.0f
+#define RAC2_CLANK_TARGET_FRAME 24.0f
+#define RAC2_CLANK_JUMP_GRAVITY 0.0069444445f
+#define RAC2_CLANK_AIR_STICK_SPEED 0.033333335f
+
+/* His windows in polls (func_L00_002CB3A8 cases 0x3F, 0x40 and 0x45): X 8 and Square 9 standing or
+ * running, Square 5 landing from a jump. All rac1's. */
+#define RAC2_CLANK_JUMP_WINDOW 8
+#define RAC2_CLANK_SQUARE_WINDOW 9
+#define RAC2_CLANK_LAND_SQUARE_WINDOW 5
+
+/* His punches' records 7 and 8 (level 0 data D_L00_0025D990, as the wrench's): the next punch chains
+ * under frame 16, the windows count from frame 3, it jumps out after 8 and stands after 10, it hits
+ * from 3 to 6. rac1's level data is the same (DESIGN.md 9.1). */
+#define RAC2_REC7_CHAIN 16
+#define RAC2_REC7_FIRST 3
+#define RAC2_REC7_OPEN 12
+#define RAC2_REC7_JUMP 8
+#define RAC2_REC7_EXIT 10
+#define RAC2_REC7_HIT_FROM 3
+#define RAC2_REC7_HIT_TO 6
+#define RAC2_REC8_CHAIN 16
+#define RAC2_REC8_FIRST 3
+#define RAC2_REC8_OPEN 12
+#define RAC2_REC8_JUMP 8
+#define RAC2_REC8_EXIT 10
+#define RAC2_REC8_HIT_FROM 3
+#define RAC2_REC8_HIT_TO 6
+
 /* --- This tick's units ---------------------------------------------------------------------- */
 
 /* The tick rac1 runs: g_frame_time (seconds a tick), g_frame_time_sq, g_frame_scale_sq and

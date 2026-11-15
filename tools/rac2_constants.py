@@ -17,9 +17,10 @@ Three kinds of number are level data, not literals:
   func_L00_00425118 reads, the eye's springs func_L00_00425CD0 reads): with --lit too, at the v2.00
   disc's addresses (func_L00_004263B8's `addiu $a1, $gp, 0x2568` with $gp 0x1AEFF0, and the other
   two's $gp loads), 0x60 below v1.01's;
-- the wrench's attack records (D_L00_0025D990, 0x2C bytes each, read by func_L00_002C9448 and
+- the attack records (D_L00_0025D990, 0x2C bytes each, read by func_L00_002C9448 and
   func_L00_002CB3A8): with --data (that dump's level 0 data.bin, whose manifest.json beside it
-  gives the section's address) the frames of records 0 to 3 are read from there. The dumps this was
+  gives the section's address) the frames of records 0 to 3 (the wrench's) and 7 and 8 (Clank's
+  punches) are read from there. The dumps this was
   run on are of the v2.00 disc (`--version us2`), where the table is at 0x25D910
   (func_L00_002C9448's lui/addiu at 0x2C9A5C/0x2C9A68), 0x80 below v1.01's.
 Without them, the rows the table already has are kept.
@@ -155,11 +156,56 @@ SPECS: list[tuple[str, str, str]] = [
     ("WRENCH_AIR_LATE_WINDOW", WRENCH, r"D_00189E20\.mode == 14\)\s*buffered_window = " + I + r";"),
     ("CHAIN_WINDOW", WRENCH, r"action = action < 16 \? action : " + I + r";"),
     ("THROW_AGAIN_TICKS", WRENCH, r"D_00189E20\.mode == 21 && D_00189E20\.frame >= " + I + r"\)"),
+    # Clank (DESIGN.md section 9): his run (func_L00_002BA7D8 cases 0x40 and 0x4C, rac1's 0x44 and
+    # 0x50), his idle (0x3F, rac1's 0x43), his punch (0x4D, rac1's 0x51), his glide (0x4B, rac1's
+    # 0x4F).
+    ("CLANK_RUN_SPEED", STATE_MACHINE, r"case 0x4C:\s+/\* switch 1 \*/\s+func_L00_002B39F0\(" + F),
+    ("CLANK_TURN_LIMIT", STATE_MACHINE, r"var_f14 = " + F + r";\s*var_f12_21 = 0\.033f;"),
+    ("CLANK_TURN_ACCEL", STATE_MACHINE, r"var_f14 = 0\.16580631f;\s*var_f12_21 = " + F),
+    ("CLANK_TURNAROUND_LIMIT", STATE_MACHINE, r"\{\s*var_f14 = " + F + r";\s*var_f12_21 = 0\.037f;"),
+    ("CLANK_TURNAROUND_ACCEL", STATE_MACHINE, r"var_f14 = 0\.19489513f;\s*var_f12_21 = " + F),
+    ("CLANK_TURN_DAMP", STATE_MACHINE, r"func_L00_002B3EF8\(0, var_f12_21, " + F),
+    ("CLANK_RUN_ACCEL", STATE_MACHINE, r"var_f12_21, 0\.15f, var_f14\);\s*func_L00_002B41B8\(" + F),
+    ("CLANK_RUN_BRAKE", STATE_MACHINE, r"var_f12_21, 0\.15f, var_f14\);\s*func_L00_002B41B8\([0-9.]+f, " + F),
+    ("CLANK_ALONG_SPEED", STATE_MACHINE, r"func_L00_002B41B8\(0\.005f, 0\.0055555557f\);\s*if \(\(\(Hero \*\)D_00189E20\)->f\[0x174/4\] < " + F),
+    ("CLANK_TURNAROUND_ANGLE", STATE_MACHINE, r"b\[0x40C\] = 1U;\s*if \(\(" + ERR + r" > " + F + r"\) && \(\(\(Hero \*\)D_00189E20\)->f\[0x24B8/4\] > [0-9.]+f\)\) \{"),
+    ("CLANK_TURNAROUND_STICK", STATE_MACHINE, r"b\[0x40C\] = 1U;\s*if \(\(" + ERR + r" > [0-9.]+f\) && \(\(\(Hero \*\)D_00189E20\)->f\[0x24B8/4\] > " + F),
+    ("CLANK_FLICK_FROM", STATE_MACHINE, r"temp_f20_18 = func_L00_0032F038\(" + I + r"\);"),
+    ("CLANK_FLICK_TO", STATE_MACHINE, r"func_00283C80\(temp_f20_18, func_L00_0032F038\(" + I + r"\)\)"),
+    ("CLANK_FLICK_ANGLE", STATE_MACHINE, r"func_00283C80\(temp_f20_18, func_L00_0032F038\(2\)\) > " + F),
+    ("CLANK_FLICK_ERROR", STATE_MACHINE, r"func_L00_0032F038\(2\)\) > [0-9.]+f\) && \(" + ERR + r" > " + F),
+    ("CLANK_FLICK_STICK", STATE_MACHINE, r"func_L00_0032F038\(2\)\) > [0-9.]+f\) && \(" + ERR + r" > [0-9.]+f\) && \(\(\(Hero \*\)D_00189E20\)->f\[0x24B8/4\] > " + F),
+    ("CLANK_ALONG_CLEAR", STATE_MACHINE, r"func_L00_0032F038\(2\)\)[^\n]*\n[^\n]*\n[^\n]*\n\s*\}\s*if \(" + ERR + r" < " + F),
+    ("CLANK_TURNAROUND_CLEAR", STATE_MACHINE, r"b\[0x40C\] = 0U;\s*\}\s*if \(\(\(Hero \*\)D_00189E20\)->b\[0x40F\] != 0\) \{\s*if \(" + ERR + r" < " + F),
+    ("CLANK_IDLE_BRAKE", STATE_MACHINE, r"case 0x43:\s+/\* switch 1 \*/\s+func_L00_002B9F00\(3\.7f, 0\.0f, 0\.35f\);\s*func_L00_002B39F0\(1\.0f, 0\);\s*[^\n]*\n\s*func_L00_002B41B8\(0\.0f, " + F),
+    ("CLANK_PUNCH_TURN_LIMIT", STATE_MACHINE, r"func_L00_002B3EF8\(0, 0\.05f, 0\.2f, " + F + r"\);\s*\} else \{\s*func_L00_002B75A0\(5\.0f"),
+    ("CLANK_PUNCH_ACCEL", STATE_MACHINE, r"func_L00_002B75A0\(5\.0f, 0\.78539824f, 0\.78539824f\);\s*\}\s*func_L00_002B41B8\(" + F),
+    ("CLANK_PUNCH_BRAKE", STATE_MACHINE, r"func_L00_002B75A0\(5\.0f, 0\.78539824f, 0\.78539824f\);\s*\}\s*func_L00_002B41B8\([0-9.]+f, " + F),
+    ("CLANK_GLIDE_SPEED", STATE_MACHINE, r"case 0x4B:\s+/\* switch 1 \*/\s+func_L00_002B39F0\(" + F),
+    ("CLANK_GLIDE_TURN_LIMIT", STATE_MACHINE, r"func_L00_002B3EF8\(0, 0\.04f, 0\.2f, " + F + r"\);\s*func_L00_002B41B8\(0\.004166667f"),
+    # His jump's entry (func_L00_002C42E0, state 0x45, rac1's 0x49).
+    ("CLANK_JUMP_HEIGHT", ENTRY, r"WORD\(0x2294\) == 0x45\) \{\s*REAL\(0x4A8\) = " + F),
+    ("CLANK_TAKEOFF", ENTRY, r"WORD\(0x2294\) == 0x45\) \{\s*REAL\(0x4A8\) = [0-9.]+f; SHORT\(0x4AC\) = " + I + r";"),
+    ("CLANK_APEX_FRAME", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x4C8\) = " + F),
+    ("CLANK_TARGET_FRAME", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x4CC\) = " + F),
+    ("CLANK_JUMP_HEIGHT_HELD", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x50C\) = " + F),
+    ("CLANK_JUMP_GRAVITY", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x520\) = " + F),
+    ("CLANK_AIR_STICK_SPEED", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x4A4\) = " + F),
+    # His windows (func_L00_002CB3A8, cases 0x3F and 0x45): X and Square standing or running, Square
+    # landing.
+    ("CLANK_JUMP_WINDOW", DECIDER, r"func_L00_0032EF10\(0x40, " + I + r", NULL\) != 0\) \{\s*func_L00_002C42E0\(0x45, 1\);\s*break;\s*\}\s*if \(func_L00_0032EF10\(0x80, 9"),
+    ("CLANK_SQUARE_WINDOW", DECIDER, r"func_L00_0032EF10\(0x80, " + I + r", NULL\) != 0\) \{\s*func_L00_002C42E0\(0x4D, 1\);\s*break;\s*\}\s*func_L00_002B39F0\(0, 1\.0f\);"),
+    ("CLANK_LAND_SQUARE_WINDOW", DECIDER, r"0x31C\) < 0\.2f\) && \(func_L00_0032EF10\(0x80, " + I + r", NULL\)"),
 ]
 
 # The attack records' frames (level 0 data): name, record, byte offset in the 0x2C-byte record.
 RECORDS = [(f"REC{r}_{name}", r, off) for r in range(4)
            for name, off in (("FIRST", 0xC), ("OPEN", 0x10), ("JUMP", 0x14), ("EXIT", 0x18))]
+# Clank's punches, records 7 and 8 (func_L00_002C42E0's case 0x4D takes 7 + the chain), with the frame
+# under which the next punch chains (+0x8) and the hit window (+0x1C to +0x20).
+RECORDS += [(f"REC{r}_{name}", r, off) for r in (7, 8)
+            for name, off in (("CHAIN", 0x8), ("FIRST", 0xC), ("OPEN", 0x10), ("JUMP", 0x14), ("EXIT", 0x18),
+                              ("HIT_FROM", 0x1C), ("HIT_TO", 0x20))]
 RECORD_TABLE = 0x25D910  # D_L00_0025D990 on v1.01, 0x80 lower on v2.00 (the dumps')
 
 # The follow camera's numbers (level 0's lit): name, v2.00 address, the v1.01 name rac2-decomp gives.
@@ -258,7 +304,7 @@ def camera(lit: Path | None) -> list[tuple[str, str, str]]:
 
 
 def attack_records(data: Path | None) -> list[tuple[str, str, str]]:
-    """Records 0 to 3's frames from a level 0 data.bin (its manifest.json beside it), or the table's rows."""
+    """Records 0 to 3's and 7 and 8's frames from a level 0 data.bin (its manifest.json beside it), or the table's rows."""
     if data is not None:
         manifest = json.loads((data.parent / "manifest.json").read_text(encoding="utf-8"))
         base = next(s["address"] for s in manifest["sections"] if s["name"] == "data")

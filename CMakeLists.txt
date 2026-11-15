@@ -43,9 +43,9 @@ endif()
 
 # The tests build only when testing is on (CTest's BUILD_TESTING).
 if(BUILD_TESTING)
-  # The decisions alone (src/rac1/ground.h, air.h, strafe.h, wrench.h, camera.h): plain C, no game,
-  # no SDK.
-  foreach(name ground air strafe wrench camera)
+  # The decisions alone (src/rac1/ground.h, air.h, strafe.h, wrench.h, camera.h, clank.h): plain C,
+  # no game, no SDK.
+  foreach(name ground air strafe wrench camera clank)
     add_executable(rac1_enhanced_movement_${name}_test tests/${name}_test.c)
     target_include_directories(rac1_enhanced_movement_${name}_test PRIVATE src tests)
     set_target_properties(rac1_enhanced_movement_${name}_test PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)

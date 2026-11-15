@@ -20,7 +20,9 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | 7. PAL v2.00 (0.2.0) | Done on your request: the PAL row (DESIGN.md section 6, section 5 before 0.3.0), rac1's tick windows counted as `scale_ticks` counts them, the load test on both discs and at PAL's 50 Hz, the play-test on the PAL disc (PLAYTEST.md); released as 0.2.0 (tag `rac1-better-movement-v0.2.0`) |
 | 8. Renamed (0.2.1) | On your request: the repository, folder, id, name, library and tags are `rac1-enhanced-movement` (github.com/kmomoney/rac1-enhanced-movement; GitHub redirects the old address). The 0.1.0 and 0.2.0 releases keep their old names. The manifest conflicts with the old id, so an old copy must be removed before the new one runs |
 | 9. Wrench (0.3.0) | Done on your request, released as 0.3.0 (tag `rac1-enhanced-movement-v0.3.0`): Going Commando's wrench timing (section 9 below, DESIGN.md section 5), the `wrench` setting, `wrench.h` and its test, the load test on both discs, 34 more rows in `rac2_constants.tsv` (the attack records read from the v2.00 disc's level 0 data), the play-test against Going Commando itself in OpenRAC's rac2 port and on both rac1 discs (PLAYTEST.md). The movement route plays tick for tick as 0.2.1 did |
-| 10. Camera (0.3.0) | Done on your request, released as 0.3.0 (tag `rac1-enhanced-movement-v0.3.0`): the `camera` setting (`rac1`, `rac2`, `modern`; section 10 below, DESIGN.md section 8), `camera.h` and its test, the load test on both discs and at 50 Hz, 10 more rows in `rac2_constants.tsv` (read from the v2.00 disc's level 0 data), the play-test on both rac1 discs against Going Commando in OpenRAC's rac2 port (PLAYTEST.md). `rac2` is Going Commando's fastest turn on every step, your choice (section 10). With `rac1` every route plays tick for tick as before, and with `rac2` until the right stick turns the camera. 0.3.0 is the wrench and the camera together |
+| 10. Camera (0.3.0) | Done on your request, released as 0.3.0 (tag `rac1-enhanced-movement-v0.3.0`): the `camera` setting (`rac1`, `rac2`, `modern`; section 10 below, DESIGN.md section 8), `camera.h` and its test, the load test on both discs and at 50 Hz, 10 more rows in `rac2_constants.tsv` (read from the v2.00 disc's level 0 data), the play-test on both rac1 discs against Going Commando in OpenRAC's rac2 port (PLAYTEST.md). `rac2` is Going Commando's fastest turn on every step, your choice (section 10). With `rac1` every route plays tick for tick as before, and with `rac2` until the right stick turns the camera. 0.3.0 is the wrench and the camera together. (`modern` was removed in 0.3.1: row 11) |
+| 11. `modern` removed (0.3.1) | Done on your request, released within 0.4.0 (tag `rac1-enhanced-movement-v0.4.0`; no 0.3.1 tag): you play-tested 0.3.0 and found `modern` far too fast, even on the game's slowest camera speed (it is three times the game's: 180 / 234 / 288 degrees a second). The choice, its code (the ×3 gain, the pitch's steps, the eye's springs and their 20-tick window), its addresses, tests and docs are gone; `rac1` and `rac2` are unchanged (section 10). A saved `modern` gives the default `rac2`: the launcher drops it on installing 0.3.1, the port hands the default for it, and `camera_choice()` maps it to `rac2` (the load test feeds it). Play-tested on both discs against the 0.3.0 release (PLAYTEST.md) |
+| 12. Clank (0.4.0) | Done on your request, released as 0.4.0 (tag `rac1-enhanced-movement-v0.4.0`; top speed 3.45, your choice over 3.13): the `clank` setting (`rac1`, `rac2`, `enhanced`, the default; section 11 below, DESIGN.md section 9), `clank.h`, every `enhanced` number in `clank_tune.h`, the `clank` test, the load test on both discs and at 50 Hz, 48 more rows in `rac2_constants.tsv` (Clank's literals and his punch records), the play-test on both rac1 discs and in Going Commando's port, whose Aranos Prison starts as Clank (PLAYTEST.md). `rac1` plays Clank and every Ratchet route tick for tick as 0.3.1. Giant Clank stays the game's (section 11) |
 
 ## 1. Decisions
 
@@ -35,7 +37,8 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | Id | `rac1-enhanced-movement`, version `0.1.0` |
 | Multiplayer | `"input"`: it changes how one player's Ratchet moves, not the world or its rules |
 | Wrench (0.3.0) | Part of Ratchet's movement: rac2's timing, windows, way out of a swing and lock-on turn. **Damage and hit windows stay rac1's**, for the same reason as the jump heights: rac1's enemies and bosses are balanced around them. Where unclear, the choice that keeps rac1 as beatable (section 9) |
-| Camera (0.3.0) | One `camera` choice: `rac1` (the game's), `rac2` (Going Commando's fastest turn, 132 degrees a second on every step of the game's camera speed, the default like the mod's other Going Commando parts), `modern` (faster than both). Turn speed and feel only; the follow camera's other behaviour stays rac1's (section 10) |
+| Clank (0.4.0) | One `clank` choice: `rac1` (the game's: the mod stays out of him), `rac2` (Going Commando's Clank where it differs), `enhanced` (past it, the default). Moderate steps, each anchored to Going Commando's own step for Ratchet in the same quantity (section 11). **Jump heights, punch damage, hits and reach stay rac1's**, as for Ratchet; the Gadgebot commands are the game's; Giant Clank is left out |
+| Camera (0.3.0) | One `camera` choice: `rac1` (the game's), `rac2` (Going Commando's fastest turn, 132 degrees a second on every step of the game's camera speed, the default like the mod's other Going Commando parts). Turn speed only; the follow camera's other behaviour stays rac1's (section 10). **0.3.1 removes 0.3.0's third choice, `modern`** (three times the game's speed): played, it was far too fast even on the game's slowest step. `rac2` is the fastest choice; a saved `modern` gives `rac2` |
 
 What the research found about two of the scope items:
 
@@ -195,6 +198,9 @@ hooks reach every level:
 
 The wrench (0.3.0, section 9) uses the same hook points: the post-step of `update_motion_input`
 for its steers, `turn_to_heading` for the lock-on turn, `approach_speed` for the slam's drive.
+So does Clank (0.4.0, section 11): `update_motion_input` gives him a tick of his own (his jump's
+entry before, his steers after), and the run's helpers and the punch's lock-on turn are changed as
+Ratchet's are.
 
 Rules every hook follows:
 
@@ -245,11 +251,13 @@ rac1-enhanced-movement/
 │       ├── air.h          jump-entry adjustments
 │       ├── strafe.h       sectors, side timers, flip test, twist angles, backpedal
 │       ├── wrench.h       the swings' steers, Square's windows, the lock-on turn (0.3.0)
-│       ├── camera.h       the camera turn's gain, pitch steps and spring (0.3.0)
+│       ├── camera.h       the camera turn's gain (0.3.0)
+│       ├── clank.h        Clank's run, jump, Square and punch decisions (0.4.0)
+│       ├── clank_tune.h   every number `enhanced` plays Clank with, to adjust after playing
 │       ├── game.h
 │       └── game.cpp       load(), the hooks, reading and writing game memory
 ├── tests/
-│   ├── ground_test.c, air_test.c, strafe_test.c, wrench_test.c, camera_test.c
+│   ├── ground_test.c, air_test.c, strafe_test.c, wrench_test.c, camera_test.c, clank_test.c
 │   │                      the decisions, values worked out by hand
 │   ├── load_test.c        the built library loaded as the port loads it
 │   ├── manifest_test.py   settings keys, types and defaults against the code
@@ -275,11 +283,12 @@ is for and where its facts come from.
 | `flips` | bool | true | Strafing, X with the stick pushed fully sideways or back flips that way |
 | `twist` | bool | true | Strafing, his hips turn toward where he goes |
 | `wrench` | bool | true | Going Commando's wrench timing (0.3.0, section 9); damage stays the first game's |
-| `camera` | choice: `rac1`, `rac2`, `modern` | `rac2` | How fast the right stick turns the camera (0.3.0, section 10): the first game's, Going Commando's fastest, or three times the game's speed with the eye held close |
+| `camera` | choice: `rac1`, `rac2` | `rac2` | How fast the right stick turns the camera (0.3.0, section 10): the first game's or Going Commando's fastest. 0.3.0's `modern` was removed in 0.3.1; a saved one is `rac2` |
+| `clank` | choice: `rac1`, `rac2`, `enhanced` | `enhanced` | How Clank handles alone (0.4.0, section 11): the first game's, Going Commando's, or past it. Heights and punch damage stay the first game's; Giant Clank stays the game's |
 | `trace` | bool, `multiplayer: "own"` | false | A log line per tick with every input each decision used. `OPENRAC_ENHANCED_MOVEMENT_TRACE=1` does the same |
 
-The defaults are the recommended experience. With everything off and `camera` at `rac1`, the mod
-takes no hooks. One log line
+The defaults are the recommended experience. With everything off and `camera` and `clank` at `rac1`,
+the mod takes no hooks. One log line
 at load says the disc and each setting.
 
 ## 7. Phases
@@ -542,7 +551,7 @@ Risks:
 - At 50 Hz both games' Square windows are the same length, so nothing is buffered there. OpenRAC
   runs PAL at 60 Hz, so only the tests run that path.
 
-## 10. The camera (setting `camera`, 0.3.0)
+## 10. The camera (setting `camera`, 0.3.0; `modern` removed in 0.3.1)
 
 Research (DESIGN.md section 8, with the evidence):
 - **rac1** turns its follow camera with the right stick only: rate control for yaw, gain × stick x a
@@ -564,41 +573,36 @@ Research (DESIGN.md section 8, with the evidence):
 **Decision (the user, 2026-11-14): `rac2` is Going Commando's top speed.** Faithful to rac2's
 default step, `rac2` would change nothing until the player raised the game's camera speed. The user
 chose to have it always take rac2's fastest step (2.2 degrees a tick, 132 a second), whichever step
-the game's option is on, so the three choices rise one above the other: 78, 132 and 234 degrees a
-second at the game's default. Only rac2's fastest number is used; the pitch, the springs and the dead
-zone are the same in both games anyway.
+the game's option is on, so the two choices rise one above the other: 78 and 132 degrees a second at
+the game's default. Only rac2's fastest number is used; the pitch, the springs and the dead zone are
+the same in both games anyway.
 
 The choices:
 
 | | Yaw at full stick, by the game's camera speed step | Pitch | The eye's ramp and stop |
 |---|---|---|---|
 | `rac1` | 60 / **78** / 96 degrees a second | the game's | the game's: 90% after 24 ticks, 15 degrees coasted |
-| `rac2` (default) | 132 / **132** / 132 | the game's (rac2's is the same) | the game's (rac2's is the same) |
-| `modern` | 180 / **234** / 288 | three times as quick, the same ±40 degrees | 90% within 6 ticks, about 10 degrees coasted, stopped within 10 |
+| `rac2` (default) | 132 / **132** / 132 | the game's (rac2's is the same) | the game's (rac2's is the same): 90% after 24 ticks, 27 degrees coasted |
 
-**Why `modern` is three times the game's speed.** Current third-person action games turn the camera
-at roughly 180 to 300 degrees a second at full stick by default, and let the player scale that. Three
-times the game's own rate puts the default step (both games' default, 78) at 234, the middle of that
-range, and keeps the game's own camera speed option meaningful as the scale: 180 on the slow step,
-288 on the fast one. It is 1.8 times Going Commando's fastest (132), so clearly faster than both games
-on any step. Twice would leave the default at 156, barely above rac2's fastest; four times would put
-the fast step at 384, past the range.
+At 50 Hz `rac2` keeps rac1's per tick (rac1's PAL disc does not scale its camera).
 
-**Why `modern` holds the eye closer while the stick turns the camera.** The game's eye spring would
-keep the ramp of 24 ticks and coast three times as far, 48 degrees past where the stick let go, which
-feels floaty, not modern. While the stick turns the camera and for 20 ticks after, the spring is
-0.2 / 0.7 (`rope_spring_turn` in `camera_test.c`): 90% of the rate within 6 ticks (0.1 s, a short
-ramp, not a snap), stopped within 10 ticks of letting go. Outside that window the camera follows Ratchet
-as the game's does. The pitch's steps scale with the yaw (×3) only while the pitch is the player's
-(the stick's y, or its aim on the way back), because the game levels the orbit with the same steps
-after a jump or a slope. At 50 Hz `modern` keeps its numbers in seconds; `rac2` keeps rac1's per tick
-(rac1's PAL disc does not scale its camera).
+**Decision (the user, 2026-11-14): `modern` removed in 0.3.1.** 0.3.0 had a third choice, `modern`:
+three times the game's own speed (180 / 234 / 288 degrees a second by the game's step), picked as the
+middle of the 180 to 300 degrees a second current third-person games turn at by default, with the
+pitch's steps three times as quick and the eye's spring stiffened to 0.2 / 0.7 while the stick turned
+the camera and for 20 ticks after (90% of the rate within 6 ticks, stopped within 10). The user
+play-tested 0.3.0 and found it far too fast, even on the game's slowest camera speed (180 degrees a
+second). It is removed, not retuned: `rac2` (132) is the fastest choice, and nothing replaces it.
+Players who saved `modern` get the default, `rac2`: the launcher drops a value the new manifest no
+longer takes when it installs the new version (`plugins::install`), the port hands the default for one
+anyway (`resolve_settings`, with a warning in the log), and `camera_choice()` gives `rac2` for any
+value it does not know (the load test feeds it `modern`). PLAYTEST.md keeps 0.3.0's measurements of
+`modern`, marked as removed.
 
 How (no new hook point, no game function called): `rac1.camera.follow.apply_overrides` runs after
-`follow_camera_update` sets the gain from the table and before the turn reads it. The hook writes the
-gain (`rac2`: × rac2's entry over rac1's; `modern`: × 3), and for `modern` the pitch's steps and the eye's
-springs. rac1 sets the gain again at its next update; the pad hook puts every word back before the next
-tick, as the mod's other steers.
+`follow_camera_update` sets the gain from the table and before the turn reads it. For `rac2` the hook
+writes the gain × rac2's entry over rac1's. rac1 sets the gain again at its next update; the pad hook
+puts it back before the next tick, as the mod's other steers.
 
 Left out (README, known limits): first person (the same in both games; no hook point brackets its
 camera), the dead zone (it would change the stick for the whole game), and the differences around the
@@ -606,10 +610,140 @@ turn. Other mods: **modern-controls** drives the right-stick camera itself, so w
 `rac1`; **steam-deck-pack**'s gyro and trackpad feed the right stick and take this setting's speed
 (DESIGN.md section 7).
 
-Risks:
-- The springs and the pitch's steps are level constants the game never sets: if a tick ran the
-  camera's update without a pad poll before the next, the hook's own start puts them back first, so
-  they never compound (the load test runs that).
-- Under `modern`, strafing while the camera turns fast, Ratchet turns after it on Going Commando's own
-  strafe spring (4.2): some 27 degrees behind at 234 degrees a second (9 at 78), catching up as the
-  camera slows.
+Risk: if a tick ran the camera's update twice without a pad poll between, the hook's own start puts
+the gain back first, so it never compounds (the load test runs that).
+
+## 11. Clank (setting `clank`, 0.4.0)
+
+Your request: Clank is "notoriously slow" in the first game and not loved in Going Commando either,
+so improve his controls past Going Commando's, on the principles the mod used for Ratchet, his
+attack, jump and movement included. Research and evidence: DESIGN.md section 9.
+
+**What the research found.** Clank alone is the hero in vehicle mode 1, with states of his own run
+through the same helpers as Ratchet's, so the existing hook points reach him (DESIGN.md 9.4).
+- **rac1's Clank** already moves at a speed that follows the stick (3 u/s at full stick), has no skid
+  and stops dead when you let go. What makes him slow to handle is the rest:
+  - he gets going at 7.5 u/s², cut further while he turns (90% of his speed after 24 ticks);
+  - at a run he turns on a soft spring (90 degrees in 29 ticks);
+  - a turnaround is a loop along his facing (19 ticks before he moves the new way);
+  - his jump leaves the ground 6 ticks after X;
+  - his punch takes 24 ticks and can only be left by jumping;
+  - Square counts for 9 polls before he can punch.
+- **rac2's Clank** is the same code with a few changed numbers:
+  - Going Commando's run acceleration and braking (18, 20);
+  - a firm turn (0.033 / 0.15 / 9.95: 90 degrees in 11 ticks) and its turnaround spring;
+  - moving along the stick when slow;
+  - a 3-tick takeoff;
+  - the wrench's quicker lock-on turn (16.93);
+  - a punch whose frames come 2 ticks sooner (22 ticks; out by a jump after 18).
+
+  His speed, heights, air speed, glide, windows, records and hits are the first game's. That is
+  enough difference for a choice of its own.
+- **Giant Clank** (rac1's Quartu boss fight, a walking mech) has no Going Commando counterpart to
+  port or to anchor a step to: rac2's Giant Clank is a flying fight in orbit. Left out (below).
+
+### 11.1 The choices
+
+| Choice | Clank |
+|---|---|
+| `rac1` | the game's; the mod takes nothing of him (with everything else off, no hooks) |
+| `rac2` | Going Commando's where it differs (above), with the first game's hit, lunge and reach (rac2's punch hits 2 ticks sooner and lunges 0.69 units, not 0.81: only its way out is ported) |
+| `enhanced` (default) | `rac2`, and past it by the steps of 11.2 |
+
+### 11.2 `enhanced`: each number and its anchor
+
+All in `src/rac1/clank_tune.h`, to adjust after playing. The rule: start from rac2's Clank where it
+improved on rac1. Go past it only by the size of the step Going Commando itself gave Ratchet in the
+matching quantity, and never past that step. Your rejection of the camera's `modern` (three times the
+game's speed) is the reason for this rule.
+
+| Quantity | rac1 | rac2 | `enhanced` | Anchor |
+|---|---|---|---|---|
+| Top speed | 3.0 u/s | 3.0 | **3.45** | Your choice (2026-11-14), 15% over both games. First built at 3.13, Ratchet's step 5.7 to 5.95 (× 1.044) applied to Clank, which left a long walk as slow as the first game's; still well under Ratchet's 5.95 |
+| Speed by stick | 3 × stick | the same | 3.45 × stick | both games already follow the stick |
+| Getting going, slowing | 7.5 × k, 8.5 | 18, 20 | **18, 20** | rac2's (Ratchet's own rac1-to-rac2 step: 7.5 to 18). At 18 he reaches 90% of 3.45 in 12 ticks; quicker would be twitchy |
+| Turn, turnaround | by stick and speed; 90° in 29 ticks at a run | 0.033 / 0.15 / 9.95; 0.037 / 11.69 | **rac2's** | already a bigger step than Ratchet's (his run band 40 to 18 ticks for 90°; Clank 29 to 11) |
+| Along the stick when slow | never | under 0.7 u/s | **rac2's** | |
+| Letting go | stops in a tick | the same | the same | no skid in either game |
+| Jump takeoff | 5 ticks | 3 | **3** | rac2's |
+| Air control in his jump | 2.0 u/s (67% of his run) | 2.0 | **2.5** (80% of 3.13, Ratchet's step applied to his top speed; kept at 2.5 with the top speed at 3.45, so his jumps reach no further than they were played) | Going Commando raised Ratchet's double jump from 61% to 80% of his run speed (3.5 to 4.75) |
+| Jump heights, gravity | 1.3 / 1.35, 25 | the same | **the same** | the levels' |
+| Glide, fall | 2.0, 3.0 | the same | **the same** | their match, Ratchet's heli hover, is the same in both games |
+| Lock-on turn | 15.01 rad/s | 16.93 | **16.93** | rac2's, the wrench's step |
+| Square remembered standing, running | 9 polls | 9 | **13** | Ratchet's 7 to 10 (× 10/7) |
+| Square remembered landing | 5 | 5 | **7** | Ratchet's 10 to 14 in a jump (× 1.4) |
+| Leaving a punch | stands after frame 10 (24 ticks); jumps out after 8 (21) | a frame sooner: 22, 18 | **rac2's**, and with the stick past 0.8 it runs out past frame 7 (19 ticks to the run) | rac2's run out of a swing (stick 0.8). Going Commando let Ratchet run out of his swings 10 and 16 ticks sooner than the first game; this is 6 sooner than the first game's Clank and 4 sooner than rac2's, 1 frame after the hit |
+| Hits, damage, the lunge | frames 3 to 6, 1.0, 0.81 units | (sooner, shorter) | **rac1's** | the levels' |
+| X windows, Gadgebot commands | | | the game's | |
+
+Measured (PLAYTEST.md, Clank) on the same route in the first game and in Going Commando's port:
+
+| | rac1 | `enhanced` |
+|---|---|---|
+| 90% of the run speed | 24 ticks | 11 |
+| The turnaround: moving the new way | 19 ticks | 1 |
+| 90 degrees | 19 ticks | 7 |
+| Off the ground | 6 ticks after X | 4 |
+| A punch | 24 ticks | 22; with the stick pushed out after 18, running after 19 |
+| A running jump | 1.10 units | 1.37 |
+
+`rac2` matches Going Commando's port on every one of those. The one exception is rac1's own pipeline,
+which starts and stops the run a tick after rac2's, with or without the mod.
+
+### 11.3 The levels as built
+
+- **Heights, hits, damage, reach** stay the first game's in every choice, for the reason Ratchet's
+  do: Orxon's and Blarg's Clank parts and their enemies are built around them.
+- **Timed and triggered things in his sections** (rac1-decomp `l10_orxon`, `l06_blarg`; what was
+  checked):
+  - Orxon's gates: `gate_1` opens for Clank by itself; `gate_2` by flags.
+  - Its platforms: `cycling_platform` (1.5 units up and down over 45 ticks, then 120 ticks of wait);
+    `sinking_platform` (sinks while stood on, at most 2 u/s).
+  - Its doors and buttons: `lab_door` (opens over 20 ticks), the pressure plate `button_1031`.
+  - The Gadgebots' telepot pad (a 90-tick timer), the bot elevators and door locks.
+  - Blarg's Clank part: the timed and oscillating toxic gas vents, the beam barriers, the drawbridge.
+
+  Each waits for him or punishes him for being there. None needs him slow, none counts his time, and
+  each clip volume is far wider than a tick of his run (0.05 units). A 4% faster, quicker-starting
+  Clank only arrives sooner and crosses a vent's or a sinking platform's danger sooner.
+
+  On Orxon the play-test walked the start through both gates to the first toxic crab and punched the
+  crates by the start: the same events in every choice, only sooner (PLAYTEST.md).
+- **The Gadgebot commands** are the game's: the mod changes no input but Square's memory and X's for
+  the steered tick, and only in his idle, run, landing and punch.
+- **Giant Clank** is left out (above; DESIGN.md 9.3): the mod acts only in vehicle mode 1.
+
+### 11.4 How
+
+No new hook point and no game function called (DESIGN.md 9.5):
+- `update_motion_input` gives Clank a tick of his own (`clank_update`), with Ratchet's paths off.
+- The jump's entry values are written on its first tick, before its first physics tick.
+- `turn_to_heading`, `approach_speed` and `set_planar_velocity` change his run's and his punch's
+  arguments by the ratio rule.
+- The post-step steers his transitions for one tick: a Square shown as pressed, and the punch's frame
+  set to where rac1's own code leaves it as the choice would. `advance_animation` and `process_report`
+  put both back.
+
+With `clank` `rac1` the mod takes the hooks it took before for the other settings and passes every
+call of Clank's through. With everything else off, it takes none.
+
+### 11.5 Left out, and risks
+
+- Giant Clank (11.3).
+- rac2's punch hitting sooner and lunging less: the levels' reach.
+- The glide's and the fall's speeds: no anchor.
+- rac2's L1-only look.
+- rac2's landing animation frame.
+- **Risk:** the punch's frame is steered for a tick, as the wrench's is. Its hit test runs inside his
+  update before the steer, and the steered frames (8.5 to 11.5, or 10.5 to stand) are past its hit
+  frames, so nothing hits early or twice.
+- **Risk:** the run turn is recognised by rac1's own two springs (within 1%). A level copy calling it
+  with other numbers would keep rac1's turn and say so in the trace. Blarg's copy was diffed: the same
+  numbers.
+- **Not covered by script:**
+  - Blarg's Clank part, which needs Ratchet at its split door with Triangle;
+  - Orxon past its first crab: the Gadgebot puzzles, whose containers break on his punch. The way
+    there is not a straight line from the start, and the crab out-fights a walk-in-and-punch script in
+    the game without the mod too.
+
+  Play them once by hand.

@@ -34,6 +34,7 @@
 
 #define MEMORY_SIZE 0x00400000u
 static uint8_t* g_mem;
+static uint8_t* g_before; /* a copy of it, to see what a hook wrote */
 
 static const char* g_game = "rac1";
 static const char* g_version = "ntsc";
@@ -46,6 +47,7 @@ static int g_warned;
 static int s_ground, s_air, s_flips, s_twist, s_wrench, s_trace;
 static const char* s_strafe;
 static const char* s_camera;
+static const char* s_clank;
 static int g_no_approach; /* the port lacks rac1.player.approach_speed */
 
 /* The NTSC row. */
@@ -110,17 +112,24 @@ static void reset_game(void) {
     putu(H(BM_HERO_ANIM_LOOP_FRAME), (uint32_t)-1);
     putu(CAMERA_MOBY + BM_CAMERA_VARS, CAMERA_VARS);
 
-    // The follow camera's numbers as the game has them: its middle speed step, the pitch's steps,
-    // the eye's springs.
+    // The follow camera's numbers as the game has them: its middle speed step.
     putu(D->cam_option, 1);
     putf(D->cam_gain, 0.02268928f);
-    putf(D->cam_pitch_out, 0.02f);
-    putf(D->cam_pitch_back, 0.01f);
-    putf(D->cam_pitch_step, 0.030543262f);
-    putf(D->cam_yaw_accel, 0.015f);
-    putf(D->cam_yaw_damp, 0.2f);
-    putf(D->cam_pitch_accel, 0.015f);
-    putf(D->cam_pitch_damp, 0.2f);
+}
+
+/* How many bytes of the game's memory differ from g_before, besides the word at `skip`. */
+static int changed_besides(uint32_t skip) {
+    int n = 0;
+
+    // Every byte.
+    for (uint32_t i = 0; i < MEMORY_SIZE; i++) {
+        // Another word's, changed.
+        if ((i < skip || i >= skip + 4) && g_mem[i] != g_before[i]) {
+            n++;
+        }
+    }
+
+    return n;
 }
 
 /* ---- The hooks the mod takes, and the game's code behind each -------------------------- */
@@ -138,7 +147,8 @@ static int g_turn_calls, g_approach_calls, g_planar_calls, g_update_calls, g_adv
 static float g_turn_args[3], g_turn_move_yaw, g_approach_args[2], g_approach_target, g_planar_angle,
     g_advance_speed, g_advance_frame;
 static int32_t g_advance_changing;
-static void (*g_inside)(void); /* what the state machine does inside hero_update */
+static float g_turn_error = 0.25f; /* the yaw error the game's turn leaves */
+static void (*g_inside)(void);     /* what the state machine does inside hero_update */
 
 static void orig_pad(uint32_t p, uint32_t r, int32_t n) {
     (void)p;
@@ -164,7 +174,7 @@ static void orig_turn(int32_t m, float a, float d, float l) {
     g_turn_args[2] = l;
     g_turn_move_yaw = getf(H(BM_HERO_MOVE_YAW));
     putf(H(BM_HERO_YAW_RATE), 0.5f); /* the game's turn moves the yaw rate */
-    putf(H(BM_HERO_YAW_ERROR), 0.25f);
+    putf(H(BM_HERO_YAW_ERROR), g_turn_error);
 }
 
 static void orig_planar(float a) {
@@ -387,6 +397,11 @@ static const char* fake_string(openrac_mod* mod, const char* key) {
         return s_camera;
     }
 
+    // Clank's.
+    if (strcmp(key, "clank") == 0) {
+        return s_clank;
+    }
+
     return strcmp(key, "strafe") == 0 ? s_strafe : "";
 }
 
@@ -456,6 +471,7 @@ static void defaults(void) {
     s_trace = 0;
     s_strafe = "both";
     s_camera = "rac2";
+    s_clank = "enhanced";
     g_no_approach = 0;
     g_game = "rac1";
     g_version = D->version;
@@ -503,37 +519,63 @@ static void refusals(void) {
     CHECK_EQ(strstr(g_fail, "PAL v2.00 and NTSC-U") != NULL, 1);
     CHECK_EQ(g_hooks_taken, 0);
 
-    // Everything off, the camera the first game's: loads, takes nothing.
+    // Everything off, the camera and Clank the first game's: loads, takes nothing.
     defaults();
     s_ground = s_air = s_wrench = 0;
     s_strafe = "off";
     s_camera = "rac1";
+    s_clank = "rac1";
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 0);
+    CHECK_EQ(strstr(g_last_log, "no hooks taken") != NULL, 1);
+
+    // Clank alone, either choice: his update, the animation's undo, his run's turn, velocity and
+    // speeds, and the pad's undo; not the camera.
+    s_clank = "rac2";
+    CHECK_EQ(load_mod(), 0);
+    CHECK_EQ(g_hooks_taken, 6);
+    CHECK_EQ(g_hooks[CAMERA].replacement == NULL, 1);
+    CHECK_EQ(strstr(g_last_log, "Clank Going Commando's") != NULL, 1);
+    s_clank = "enhanced";
+    CHECK_EQ(load_mod(), 0);
+    CHECK_EQ(g_hooks_taken, 6);
+    CHECK_EQ(strstr(g_last_log, "Clank enhanced") != NULL, 1);
+
+    // A value the manifest does not list: the default, enhanced.
+    s_clank = "faster";
+    CHECK_EQ(load_mod(), 0);
+    CHECK_EQ(g_hooks_taken, 6);
 
     // The wrench alone: the update, the animation, the turn, the speeds and the pad.
     defaults();
     s_ground = s_air = 0;
     s_strafe = "off";
     s_camera = "rac1";
+    s_clank = "rac1";
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 5);
     CHECK_EQ(g_hooks[PLANAR].replacement == NULL, 1);
     CHECK_EQ(g_hooks[CAMERA].replacement == NULL, 1);
 
-    // The camera alone, either choice: the camera's overrides and the pad (which puts its words back
-    // before each tick), not the hero's update.
+    // The camera alone: the camera's overrides and the pad (which puts its gain back before each
+    // tick), not the hero's update.
     defaults();
     s_ground = s_air = s_wrench = 0;
     s_strafe = "off";
+    s_clank = "rac1";
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 2);
     CHECK_EQ(g_hooks[CAMERA].replacement != NULL, 1);
     CHECK_EQ(g_hooks[PAD].replacement != NULL, 1);
     CHECK_EQ(g_hooks[UPDATE].replacement == NULL, 1);
+
+    // A camera value the manifest no longer has (0.3.0's `modern`, kept by a host that does not hand
+    // the default as the port does): Going Commando's, the default, with the same hooks, so not the
+    // load that takes nothing.
     s_camera = "modern";
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 2);
+    CHECK_EQ(strstr(g_last_log, "camera Going Commando's") != NULL, 1);
 }
 
 static void hooks(void) {
@@ -1028,8 +1070,9 @@ static void settings_off(void) {
     CHECK_NEAR(g_approach_target, 5.7 / 60.0, TOL);
     CHECK_NEAR(g_approach_args[1], 8.5 / 3600.0, 1e-7);
 
-    // With the wrench off too, the speeds' hook is not taken.
+    // With the wrench and Clank off too, the speeds' hook is not taken.
     s_wrench = 0;
+    s_clank = "rac1";
     load_mod();
     CHECK_EQ(g_hooks[APPROACH].replacement == NULL, 1);
     g_inside = NULL;
@@ -1054,9 +1097,9 @@ static void strafing(void) {
     CALL_UPDATE();
 }
 
-/* The camera's turn (the `camera` setting): each choice's gain, modern's pitch steps and springs,
- * each put back before the next tick; nothing out of play, nothing written into another level's
- * program; the strafe camera beside it. */
+/* The camera's turn (the `camera` setting): each choice's gain, and only the gain, put back before the
+ * next tick; a saved `modern` (0.3.0's, removed) as Going Commando's; nothing out of play, nothing
+ * written into another level's program; the strafe camera beside it. */
 static void camera_turn(void) {
     const float medium = 0.02268928f;
     const float fast = 0.027925268f;
@@ -1072,128 +1115,78 @@ static void camera_turn(void) {
     CALL_PAD();
     CHECK_EQ(getf(D->cam_gain) == medium, 1);
 
-    // At the fast step: 2.2 degrees a tick for 1.6; the pitch's steps and the springs the game's.
+    // At the fast step, the stick turning the camera: 2.2 degrees a tick for 1.6, and no other word
+    // of the game's written (one update first, so the test's stand-in for the game's own camera code
+    // has already written what it writes).
     putu(D->cam_option, 2);
+    putf(P(BM_PAD_ANALOG), 1.0f);
+    putf(P(BM_PAD_ANALOG + 4), 0.6f);
+    camera_update(fast);
+    CALL_PAD();
+    memcpy(g_before, g_mem, MEMORY_SIZE);
     camera_update(fast);
     CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_step), 0.030543262, 1e-9);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
+    CHECK_EQ(changed_besides(D->cam_gain), 0);
 
     // The next poll puts it back (the game would set it again from its table itself).
     CALL_PAD();
     CHECK_EQ(getf(D->cam_gain) == fast, 1);
 
-    // Modern, the stick turning the camera: three times the gain, the eye's springs 0.2 / 0.7; the
-    // pitch's steps the game's while the pitch is not the player's (the game levels the orbit with
-    // them).
+    // A second update without the table's write or a poll between: put back first, so 2.2 degrees
+    // again, not scaled twice.
+    camera_update(fast);
+    CALL_CAMERA();
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CALL_PAD();
+    CHECK_EQ(getf(D->cam_gain) == fast, 1);
+
+    // A saved `modern`, which the manifest no longer lists: Going Commando's, as the default, on
+    // every step and with the stick on the camera (0.3.0 tripled the gain and stiffened the eye).
     s_camera = "modern";
     load_mod();
     reset_game();
     putf(P(BM_PAD_ANALOG), 1.0f);
-    camera_update(medium);
-    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
-    CALL_PAD();
-
-    // The stick's y past 0.3 too: the pitch's steps three times as quick.
     putf(P(BM_PAD_ANALOG + 4), 0.6f);
     camera_update(medium);
-    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.06, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_back), 0.03, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_step), 0.091629786, 1e-8);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
-    CHECK_NEAR(getf(D->cam_yaw_damp), 0.7, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_accel), 0.2, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_damp), 0.7, TOL);
-
-    // A second update without a poll between: each word put back first, so three times again, not
-    // nine (the pitch's steps are numbers the game never sets itself).
+    CALL_PAD();
+    memcpy(g_before, g_mem, MEMORY_SIZE);
     camera_update(medium);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.06, TOL);
-    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
-
-    // The poll puts every word back.
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CHECK_EQ(changed_besides(D->cam_gain), 0);
     CALL_PAD();
     CHECK_EQ(getf(D->cam_gain) == medium, 1);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_back), 0.01, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_step), 0.030543262, 1e-9);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
-    CHECK_NEAR(getf(D->cam_yaw_damp), 0.2, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_accel), 0.015, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_damp), 0.2, TOL);
-
-    // The stick let go, the pitch's aim on its way back: the springs hold 20 ticks more, then are the
-    // game's; the pitch's steps stay modern's until the aim is back at 0.
-    putf(P(BM_PAD_ANALOG), 0.0f);
+    putu(D->cam_option, 0);
+    camera_update(0.017453292f);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CALL_PAD();
+    putu(D->cam_option, 1);
     putf(P(BM_PAD_ANALOG + 4), 0.0f);
-    putf(CAMERA_VARS + BM_CAMERA_PITCH_AIM, 0.4f);
-
-    // Each tick: the poll, then the camera's update.
-    for (int i = 0; i < 20; i++) {
-        CALL_PAD();
-        camera_update(medium);
-        CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
-    }
-
-    CALL_PAD();
-    camera_update(medium);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_damp), 0.2, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.06, TOL);
-
-    // The aim back at 0: the pitch's steps the game's again.
-    putf(CAMERA_VARS + BM_CAMERA_PITCH_AIM, 0.0f);
-    CALL_PAD();
-    camera_update(medium);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_step), 0.030543262, 1e-9);
-
-    // The pitch past 0.3 turns it too.
-    putf(P(BM_PAD_ANALOG + 4), -0.5f);
-    CALL_PAD();
-    camera_update(medium);
-    CHECK_NEAR(getf(D->cam_pitch_accel), 0.2, TOL);
-    putf(P(BM_PAD_ANALOG + 4), 0.0f);
-
-    // The camera's flags shut the turn (a scripted swing): the stick does not turn it, no spring.
-    reset_game();
-    putf(P(BM_PAD_ANALOG), 1.0f);
-    putu(CAMERA_VARS + BM_CAMERA_TURN_FLAGS, 1);
-    load_mod();
-    camera_update(medium);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
-    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
-    putu(CAMERA_VARS + BM_CAMERA_TURN_FLAGS, 0);
-    CALL_PAD();
 
     // Another level loaded before the poll: its program is elsewhere, so nothing is written back.
     camera_update(medium);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
     g_level = 3;
     CALL_PAD();
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.2, TOL);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
     g_level = 0;
 
     // Out of play (a scene): nothing steered.
+    s_camera = "rac2";
+    load_mod();
     reset_game();
     putf(P(BM_PAD_ANALOG), 1.0f);
     putu(D->cinematic_mode, 1);
     camera_update(medium);
     CHECK_EQ(getf(D->cam_gain) == medium, 1);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
     putu(D->cinematic_mode, 0);
 
-    // Strafing with modern: rac1's strafe requests and the turn's gain, both.
+    // Strafing: rac1's strafe requests and the turn's gain, both.
     reset_game();
     strafing();
     g_orbit_calls = 0;
     camera_update(medium);
     CHECK_EQ(g_orbit_calls, 1);
-    CHECK_NEAR(getf(D->cam_gain), 0.06806784, TOL);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
     CALL_ADVANCE();
     CALL_PAD();
 
@@ -1206,9 +1199,225 @@ static void camera_turn(void) {
     camera_update(medium);
     CHECK_EQ(g_orbit_calls, 1);
     CHECK_EQ(getf(D->cam_gain) == medium, 1);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.02, TOL);
     CALL_ADVANCE();
     CALL_PAD();
+}
+
+/* ---- Clank -------------------------------------------------------------------------------------- */
+
+/* What Clank's run does inside hero_update: rac1's fast turn at full stick (t = 1.35), its speed step
+ * with the stick's 3 u/s as the target, and its velocity along his facing. */
+static void clank_run_tick(void) {
+    CALL_TURN(0, 0.008f * 1.35f, 0.15f, 9.948377f * 1.35f / 60.0f);
+    putf(H(BM_HERO_TARGET_SPEED), 3.0f / 60.0f);
+    CALL_APPROACH(7.5f * 0.9f / 3600.0f, 8.5f / 3600.0f);
+    CALL_PLANAR(99999.0f);
+}
+
+/* The same at 50 Hz: rac1's spring x 1.44, its limit and speeds by 1/50. */
+static void clank_run_tick_pal(void) {
+    CALL_TURN(0, 0.008f * 1.35f * 1.44f, 0.15f * 1.44f, 9.948377f * 1.35f / 50.0f);
+    putf(H(BM_HERO_TARGET_SPEED), 3.0f / 50.0f);
+    CALL_APPROACH(7.5f / 2500.0f, 8.5f / 2500.0f);
+    CALL_PLANAR(99999.0f);
+}
+
+/* His punch's lock-on turn. */
+static void clank_punch_tick(void) {
+    CALL_TURN(0, 0.05f, 0.2f, 15.009831f / 60.0f);
+}
+
+/* Clank alone in play (vehicle mode 1), in `state`. */
+static void clank_in(int state) {
+    g_mem[H(BM_HERO_VEHICLE_MODE)] = 1;
+    putu(H(BM_HERO_STATE), (uint32_t)state);
+}
+
+/* Clank under each choice: his run's turn, speed and velocity; his jump's entry; Square remembered;
+ * the punch's way out and lock-on turn; the steers put back; nothing for the first game's choice, for
+ * Giant Clank or in a scene; and Ratchet's run as before beside him. */
+static void clank(void) {
+    // Enhanced, his run at full stick, running: rac2's spring, 18 / 20 and the target x 3.45 / 3 for
+    // the call (rac1's put back after), along his facing.
+    defaults();
+    load_mod();
+    reset_game();
+    clank_in(0x44);
+    putu(H(BM_HERO_STATE_TIMER), 10);
+    putf(H(BM_HERO_STICK), 1.0f);
+    putf(H(BM_HERO_SPEED_XY), 0.05f);
+    putf(H(BM_HERO_FLAT_SPEED), 0.05f);
+    putf(H(BM_HERO_MOVE_YAW), 0.4f);
+    g_inside = clank_run_tick;
+    g_turn_calls = g_approach_calls = g_planar_calls = 0;
+    CALL_UPDATE();
+    CHECK_EQ(g_turn_calls, 1);
+    CHECK_NEAR(g_turn_args[0], 0.033, TOL);
+    CHECK_NEAR(g_turn_args[1], 0.15, TOL);
+    CHECK_NEAR(g_turn_args[2], 0.16580631, TOL);
+    CHECK_NEAR(g_approach_target, 3.45 / 60.0, TOL);
+    CHECK_NEAR(g_approach_args[0], 18.0 / 3600.0, 1e-7);
+    CHECK_NEAR(g_approach_args[1], 20.0 / 3600.0, 1e-7);
+    CHECK_NEAR(getf(H(BM_HERO_TARGET_SPEED)), 3.0 / 60.0, TOL);
+    CHECK_NEAR(g_planar_angle, 99999.0, 1e-2);
+    CALL_ADVANCE();
+
+    // Slow (0.3 u/s), the turn leaving him 0.25 rad off: along the stick, at the move yaw.
+    putf(H(BM_HERO_FLAT_SPEED), 0.005f);
+    CALL_UPDATE();
+    CHECK_NEAR(g_planar_angle, 0.4, TOL);
+    CALL_ADVANCE();
+
+    // Slow, the turn leaving him 2 rad off at full stick: a turnaround, whose spring the next tick's
+    // turn takes (0.037 / 0.15 / 11.69).
+    g_turn_error = 2.0f;
+    CALL_UPDATE();
+    CALL_ADVANCE();
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.037, TOL);
+    CHECK_NEAR(g_turn_args[2], 0.19489513, TOL);
+    CALL_ADVANCE();
+
+    // A new run starts with the flags clear (rac2's run entry): its first turn is the run's.
+    clank_in(0x43);
+    g_inside = NULL;
+    CALL_UPDATE();
+    CALL_ADVANCE();
+    clank_in(0x44);
+    g_turn_error = 0.25f;
+    g_inside = clank_run_tick;
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.033, TOL);
+    g_inside = NULL;
+    CALL_ADVANCE();
+
+    // His jump's first tick: rac1's takeoff 5, frames 18 / 27, air speed 2 become 3, 15 / 24, 2.5.
+    clank_in(0x49);
+    putu(H(BM_HERO_STATE_TIMER), 0);
+    putu(H(BM_HERO_TAKEOFF_FRAME), 5);
+    putf(H(BM_HERO_APEX_FRAME), 18.0f);
+    putf(H(BM_HERO_TARGET_FRAME), 27.0f);
+    putf(H(BM_HERO_AIR_STICK_SPEED), 2.0f / 60.0f);
+    CALL_UPDATE();
+    CHECK_EQ(getu(H(BM_HERO_TAKEOFF_FRAME)), 3);
+    CHECK_NEAR(getf(H(BM_HERO_APEX_FRAME)), 15.0, TOL);
+    CHECK_NEAR(getf(H(BM_HERO_TARGET_FRAME)), 24.0, TOL);
+    CHECK_NEAR(getf(H(BM_HERO_AIR_STICK_SPEED)), 2.5 / 60.0, TOL);
+    CALL_ADVANCE();
+
+    // Standing, Square 11 polls back: rac1 remembers 9, enhanced 13: shown in the newest poll for the
+    // transitions, taken back at the next poll.
+    clank_in(0x43);
+    putu(slot_of(11), BM_PAD_SQUARE);
+    CALL_UPDATE();
+    CHECK_EQ(getu(slot_of(1)), BM_PAD_SQUARE);
+    CALL_ADVANCE();
+    CALL_PAD();
+    CHECK_EQ(getu(slot_of(1)), 0);
+    CHECK_EQ(getu(slot_of(11)), BM_PAD_SQUARE);
+    putu(slot_of(11), 0);
+
+    // The punch at frame 8.5 with the stick pushed: rac1 sees 10.5 and stands (then runs), X 20 polls
+    // back hidden for the tick; the frame and X put back.
+    clank_in(0x51);
+    putu(H(BM_HERO_ATTACK_RECORD), 7);
+    putf(H(BM_HERO_ANIM_FRAME), 8.5f);
+    putu(slot_of(20), BM_PAD_CROSS);
+    CALL_UPDATE();
+    CHECK_NEAR(getf(H(BM_HERO_ANIM_FRAME)), 10.5, TOL);
+    CHECK_EQ(getu(slot_of(20)), 0);
+    clank_in(0x43);
+    CALL_ADVANCE();
+    CHECK_NEAR(g_advance_frame, 8.5, TOL);
+    CALL_PAD();
+    CHECK_EQ(getu(slot_of(20)), BM_PAD_CROSS);
+    putu(slot_of(20), 0);
+
+    // Its lock-on turn: 16.93 radians a second.
+    clank_in(0x51);
+    putf(H(BM_HERO_ANIM_FRAME), 4.0f);
+    g_inside = clank_punch_tick;
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[2], 0.2821616, TOL);
+    CALL_ADVANCE();
+
+    // Going Commando's: no Square past 9, no run out at 8.5, but standing past 9.
+    s_clank = "rac2";
+    load_mod();
+    g_inside = NULL;
+    clank_in(0x43);
+    putu(slot_of(11), BM_PAD_SQUARE);
+    CALL_UPDATE();
+    CHECK_EQ(getu(slot_of(1)), 0);
+    CALL_ADVANCE();
+    CALL_PAD();
+    putu(slot_of(11), 0);
+    clank_in(0x51);
+    putf(H(BM_HERO_ANIM_FRAME), 8.5f);
+    CALL_UPDATE();
+    CHECK_NEAR(getf(H(BM_HERO_ANIM_FRAME)), 8.5, TOL);
+    CALL_ADVANCE();
+    putf(H(BM_HERO_ANIM_FRAME), 9.5f);
+    CALL_UPDATE();
+    CHECK_NEAR(getf(H(BM_HERO_ANIM_FRAME)), 10.5, TOL);
+    CALL_ADVANCE();
+    CALL_PAD();
+
+    // X 9 polls back at frame 7.5: rac2's punch, a frame ahead, jumps out; rac1 is shown 8.5, whose
+    // window takes the press (X kept).
+    putf(H(BM_HERO_ANIM_FRAME), 7.5f);
+    putu(slot_of(9), BM_PAD_CROSS);
+    CALL_UPDATE();
+    CHECK_NEAR(getf(H(BM_HERO_ANIM_FRAME)), 8.5, TOL);
+    CHECK_EQ(getu(slot_of(9)), BM_PAD_CROSS);
+    CALL_ADVANCE();
+    CALL_PAD();
+    putu(slot_of(9), 0);
+
+    // Its run: the target as rac1's (3 u/s).
+    clank_in(0x44);
+    g_inside = clank_run_tick;
+    CALL_UPDATE();
+    CHECK_NEAR(g_approach_target, 3.0 / 60.0, TOL);
+    CHECK_NEAR(g_turn_args[0], 0.033, TOL);
+    CALL_ADVANCE();
+
+    // The first game's Clank: every call as it came, nothing steered.
+    s_clank = "rac1";
+    load_mod();
+    memcpy(g_before, g_mem, MEMORY_SIZE);
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.008 * 1.35, TOL);
+    CHECK_NEAR(g_approach_args[0], 7.5 * 0.9 / 3600.0, 1e-7);
+    CHECK_NEAR(g_approach_target, 3.0 / 60.0, TOL);
+    CHECK_EQ(changed_besides(H(BM_HERO_TARGET_SPEED)), 0);
+    CALL_ADVANCE();
+
+    // Giant Clank (vehicle mode 2), and Clank in a scene: as they came.
+    s_clank = "enhanced";
+    load_mod();
+    clank_in(0x44);
+    g_mem[H(BM_HERO_VEHICLE_MODE)] = 2;
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.008 * 1.35, TOL);
+    CHECK_NEAR(g_approach_args[1], 8.5 / 3600.0, 1e-7);
+    CALL_ADVANCE();
+    g_mem[H(BM_HERO_VEHICLE_MODE)] = 1;
+    putu(D->cinematic_mode, 1);
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.008 * 1.35, TOL);
+    putu(D->cinematic_mode, 0);
+    CALL_ADVANCE();
+
+    // Ratchet again (vehicle mode 0) in his run: Going Commando's run, as before.
+    g_mem[H(BM_HERO_VEHICLE_MODE)] = 0;
+    putu(H(BM_HERO_STATE), 2);
+    g_inside = run_tick;
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.022, TOL);
+    CHECK_NEAR(g_approach_target, 0.0991666667, TOL);
+    g_inside = NULL;
+    CALL_ADVANCE();
 }
 
 /* PAL's 50 Hz tick on PAL's row: rac2's numbers scaled as rac1 scales its own, rac1's counts by 1.2. */
@@ -1264,25 +1473,57 @@ static void pal_tick(void) {
     g_inside = NULL;
     CALL_ADVANCE();
 
-    // The camera, modern: the game's 1.3 degrees a tick (65 a second at 50 Hz) by 3.6, so 234 a
-    // second still; the pitch's steps by 3.6; the eye's springs 0.2 x 1.44 and 0.7 x 1.2.
-    s_camera = "modern";
+    // Going Commando's at 50 Hz: its fastest step per tick, as rac1 counts the gain per tick; a saved
+    // `modern` the same.
+    s_camera = "rac2";
     load_mod();
     putf(P(BM_PAD_ANALOG), -1.0f);
-    putf(P(BM_PAD_ANALOG + 4), 1.0f);
     camera_update(0.02268928f);
-    CHECK_NEAR(getf(D->cam_gain), 0.081681408, TOL);
-    CHECK_NEAR(getf(D->cam_pitch_out), 0.072, TOL);
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.288, TOL);
-    CHECK_NEAR(getf(D->cam_yaw_damp), 0.84, TOL);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
     CALL_PAD();
-    CHECK_NEAR(getf(D->cam_yaw_accel), 0.015, TOL);
-
-    // Going Commando's at 50 Hz: its fastest step per tick, as rac1 counts the gain per tick.
-    s_camera = "rac2";
+    s_camera = "modern";
     load_mod();
     camera_update(0.02268928f);
     CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CALL_PAD();
+
+    // Clank at 50 Hz: rac1's takeoff scale_ticks(5) = 6 becomes rac2's PAL 2, the air speed 2.5 /
+    // 50; his run 18 / 2500 and 20 / 2500 against rac1's 7.5 and 8.5 / 2500.
+    s_clank = "enhanced";
+    load_mod();
+    clank_in(0x49);
+    putu(H(BM_HERO_STATE_TIMER), 0);
+    putu(H(BM_HERO_TAKEOFF_FRAME), 6);
+    putf(H(BM_HERO_APEX_FRAME), 18.0f);
+    putf(H(BM_HERO_TARGET_FRAME), 27.0f);
+    putf(H(BM_HERO_AIR_STICK_SPEED), 2.0f / 50.0f);
+    g_inside = NULL;
+    CALL_UPDATE();
+    CHECK_EQ(getu(H(BM_HERO_TAKEOFF_FRAME)), 2);
+    CHECK_NEAR(getf(H(BM_HERO_AIR_STICK_SPEED)), 2.5 / 50.0, TOL);
+    CALL_ADVANCE();
+    clank_in(0x44);
+    putu(H(BM_HERO_STATE_TIMER), 10);
+    putf(H(BM_HERO_STICK), 1.0f);
+    putf(H(BM_HERO_SPEED_XY), 0.06f);
+    g_inside = clank_run_tick_pal;
+    CALL_UPDATE();
+    CHECK_NEAR(g_turn_args[0], 0.033 * 1.44, TOL);
+    CHECK_NEAR(g_turn_args[2], 0.16580631 * 1.2, 1e-6);
+    CHECK_NEAR(g_approach_args[0], 18.0 / 2500.0, 1e-7);
+    CHECK_NEAR(g_approach_args[1], 20.0 / 2500.0, 1e-7);
+    CHECK_NEAR(g_approach_target, 3.45 / 50.0, TOL);
+    g_inside = NULL;
+    CALL_ADVANCE();
+
+    // Square at 50 Hz: rac1 counts 9 as 11, enhanced 13 as 16: 14 polls back is shown.
+    clank_in(0x43);
+    putu(slot_of(14), BM_PAD_SQUARE);
+    CALL_UPDATE();
+    CHECK_EQ(getu(slot_of(1)), BM_PAD_SQUARE);
+    CALL_ADVANCE();
+    CALL_PAD();
+    putu(slot_of(14), 0);
 }
 
 int main(int argc, char** argv) {
@@ -1325,6 +1566,7 @@ int main(int argc, char** argv) {
     CHECK_EQ(info.api_minor, 0);
 
     g_mem = calloc(1, MEMORY_SIZE);
+    g_before = calloc(1, MEMORY_SIZE);
 
     // Every disc's row, each with the game laid out at its own addresses.
     for (size_t i = 0; i < sizeof k_bm_discs / sizeof k_bm_discs[0]; i++) {
@@ -1341,6 +1583,7 @@ int main(int argc, char** argv) {
         flip_and_square();
         settings_off();
         camera_turn();
+        clank();
     }
 
     pal_tick();
@@ -1348,5 +1591,6 @@ int main(int argc, char** argv) {
     // The last line the mod logged at load, for the record.
     printf("last log: %s\n", g_last_log);
     free(g_mem);
+    free(g_before);
     CHECK_DONE("load");
 }

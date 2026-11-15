@@ -35,14 +35,7 @@ typedef struct bm_disc {
     uint32_t pose_table;     /* hero_eases: the hero's joint pose records, 0xB0 bytes each */
 
     /* The follow camera's, level 0's program's too (DESIGN.md section 8). */
-    uint32_t cam_gain;        /* follow_cam_setting_value: the turn's gain, set from the table */
-    uint32_t cam_pitch_out;   /* follow_camera_pitch_input_tracking_step_limit */
-    uint32_t cam_pitch_back;  /* follow_camera_pitch_input_return_step_limit */
-    uint32_t cam_pitch_step;  /* follow_camera_pitch_angle_step_limit */
-    uint32_t cam_yaw_accel;   /* orbit_yaw_spring_stiffness: the eye's yaw after the orbit */
-    uint32_t cam_yaw_damp;    /* orbit_yaw_spring_damping */
-    uint32_t cam_pitch_accel; /* orbit_pitch_spring_stiffness */
-    uint32_t cam_pitch_damp;  /* orbit_pitch_spring_damping */
+    uint32_t cam_gain; /* follow_cam_setting_value: the turn's gain, set from the table */
 
     /* The game's functions it calls: each is one function in every level (us_map.tsv). */
     const char* orbit_clamp;    /* void (int): set_follow_camera_orbit_clamp_mode */
@@ -67,13 +60,6 @@ static const bm_disc k_bm_discs[] = {
         0x0015F040u, /* D_L00_0015F040 follow_cam_turn_blend_weight */
         0x0017A780u, /* D_L00_0017A780 hero_eases */
         0x0015F044u, /* D_L00_0015F044 follow_cam_setting_value */
-        0x00161D8Cu, /* D_L00_00161D8C follow_camera_pitch_input_tracking_step_limit */
-        0x00161D90u, /* D_L00_00161D90 follow_camera_pitch_input_return_step_limit */
-        0x00161D94u, /* D_L00_00161D94 follow_camera_pitch_angle_step_limit */
-        0x00161DC4u, /* D_L00_00161DC4 orbit_yaw_spring_stiffness_gp */
-        0x00161DC8u, /* D_L00_00161DC8 orbit_yaw_spring_damping_gp */
-        0x00161DCCu, /* D_L00_00161DCC orbit_pitch_spring_stiffness_gp */
-        0x00161DD0u, /* D_L00_00161DD0 orbit_pitch_spring_damping_gp */
         "func_L00_002E9A18",
         "func_L00_002E9AF8",
         "func_L00_002E9A40",
@@ -94,13 +80,6 @@ static const bm_disc k_bm_discs[] = {
         0x0015EF40u,
         0x0017A680u,
         0x0015EF44u, /* the NTSC decomp's follow_camera_update (D_L00_0015EF44) */
-        0x00161CBCu, /* the NTSC decomp's follow_camera_turn_and_pitch_globals.h: this and the next two */
-        0x00161CC0u,
-        0x00161CC4u,
-        0x00161CF4u, /* names_ntsc.tsv (orbit_yaw_spring_stiffness_gp at US 0x00161CF4): this and the next three */
-        0x00161CF8u,
-        0x00161CFCu,
-        0x00161D00u,
         "FUN_L00_002e8568",
         "FUN_L00_002e8648",
         "FUN_L00_002e8590",

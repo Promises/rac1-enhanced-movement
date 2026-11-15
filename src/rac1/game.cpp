@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Ratchet & Clank's part of the mod: Going Commando's movement through rac1's own hook points
-// (DESIGN.md). The decisions are src/rac1/ground.h, air.h, strafe.h, wrench.h and camera.h, apart
-// from game memory; this file reads the hero into them and applies what they return. Addresses:
-// discs.h; offsets: hero.h.
+// (DESIGN.md). The decisions are src/rac1/ground.h, air.h, strafe.h, wrench.h, camera.h and clank.h,
+// apart from game memory; this file reads the hero into them and applies what they return.
+// Addresses: discs.h; offsets: hero.h.
 //
 // A tick, and where each hook acts (DESIGN.md section 1):
 //   pad poll          process_report: undo last tick's pad and camera steers; take L2/R2 for the
@@ -16,8 +16,12 @@
 //                     slam's drive too); after, the twist, and the steers rac1's transitions will
 //                     read (the exit, the jump, the flip, the start, the wrench's swings and Square)
 //   transitions       rac1's own, the loaded level's copy
-//   follow camera     apply_overrides: the strafe camera; the turn's speed for the update that
-//                     follows (the gain, and for modern the pitch's steps and the eye's springs)
+//   follow camera     apply_overrides: the strafe camera; the turn's speed (its gain) for the
+//                     update that follows
+//
+// Clank alone (vehicle mode 1) has a tick of his own under the `clank` setting (clank_update): his
+// jump's entry before his update, his run's turn, speeds and velocity inside it, his punch's lock-on
+// turn, and after it the steers for his transitions (Square remembered, the punch's way out).
 #include "rac1/game.h"
 
 #include <cmath>
@@ -30,6 +34,7 @@
 #include "openrac/games/rac1.hpp"
 #include "rac1/air.h"
 #include "rac1/camera.h"
+#include "rac1/clank.h"
 #include "rac1/discs.h"
 #include "rac1/ground.h"
 #include "rac1/hero.h"
@@ -51,7 +56,8 @@ struct Settings {
     bool flips = true;
     bool twist = true;
     bool wrench = true;
-    int camera = BM_CAMERA_RAC2;  // camera.h's BM_CAMERA_*
+    int camera = BM_CAMERA_RAC2;    // camera.h's BM_CAMERA_*
+    int clank = BM_CLANK_ENHANCED;  // clank.h's BM_CLANK_*
     bool trace = false;
 };
 
@@ -76,6 +82,7 @@ struct PadEdit {
 struct State {
     bool in_update = false;    // inside hero_update: the inner hooks act
     bool active = false;       // this tick is in play, on foot
+    bool clank = false;        // this tick is Clank's, under the clank setting (clank_update)
     bool strafing = false;     // the strafe this tick
     bool strafe_held = false;  // the strafe's button, from the pad
     int sector = BM_FORWARD;
@@ -101,7 +108,6 @@ struct State {
     Steered cam_steers[8];
     int cam_steer_count = 0;
     int cam_steer_level = -1;
-    int cam_settle = 0;   // ticks left of modern's spring after the stick lets go
     std::string decided;  // the trace's words for this tick
 };
 
@@ -109,6 +115,7 @@ openrac::Mod* s_mod = nullptr;
 const bm_disc* s_disc = nullptr;
 Settings s_set;
 State s;
+bm_clank_params s_clank = bm_clank_params_for(BM_CLANK_ENHANCED);  // the clank setting's numbers
 
 using OrbitClampFn = void (*)(int32_t);
 using SlideFn = void (*)();
@@ -638,21 +645,18 @@ void undo_camera_steers() {
 }
 
 // The turn's speed for the follow camera's update that follows its overrides (DESIGN.md section 8):
-// the gain the stick turns it by, and for modern the pitch's steps and, while the stick turns it, the
-// eye's springs. `cam` is the camera's moby.
+// the gain the stick turns it by. `cam` is the camera's moby.
 void camera_speed(gaddr cam) {
     // In play: a level, his moby, no scene. On foot or not: Clank's follow camera turns as Ratchet's.
     if (s_mod->loaded_level() < 0 || get<std::uint32_t>(hero(BM_HERO_MOBY)) == 0
         || get<int32_t>(level0(s_disc->cinematic_mode)) != 0) {
-        s.cam_settle = 0;
         return;
     }
 
-    const bm_tick t = read_tick();
     const gaddr gain_at = level0(s_disc->cam_gain);
     const float gain = get<float>(gain_at);
     const int option = get<int32_t>(s_mod->relocate(s_disc->cam_option));
-    const float want = bm_camera_gain(s_set.camera, gain, option, &t);
+    const float want = bm_camera_gain(s_set.camera, gain, option);
 
     // Only a change: the same gain is no steer.
     if (want != gain) {
@@ -663,52 +667,249 @@ void camera_speed(gaddr cam) {
     const float y = get<float>(pad(BM_PAD_ANALOG + 4));
     const gaddr vars = get<std::uint32_t>(cam + BM_CAMERA_VARS);
     const int flags = valid(vars) ? get<int32_t>(vars + BM_CAMERA_TURN_FLAGS) : 3;
-    const bool turning = bm_camera_turning(x, y, flags) != 0;
-    const float aim = valid(vars) ? get<float>(vars + BM_CAMERA_PITCH_AIM) : 0.0f;
 
-    // Modern: the pitch three times as quick, and the eye held close while the stick turns it.
-    if (s_set.camera == BM_CAMERA_MODERN) {
-        // The pitch's steps, while the pitch is the player's: scaled from what is there.
-        for (std::uint32_t at :
-             {s_disc->cam_pitch_out, s_disc->cam_pitch_back, s_disc->cam_pitch_step}) {
-            const gaddr a = level0(at);
-
-            // Only the player's pitch: the game levels the orbit with the same steps.
-            if (bm_camera_pitching(y, flags, aim)) {
-                cam_steer(a, bm_camera_pitch_step(s_set.camera, get<float>(a), &t));
-            }
-        }
-
-        const bool stiff = turning || s.cam_settle > 0;
-        s.cam_settle = bm_camera_settle(s.cam_settle, turning ? 1 : 0, &t);
-
-        // The springs, until the eye has caught up after the stick lets go.
-        if (stiff) {
-            cam_steer(level0(s_disc->cam_yaw_accel), bm_camera_spring_accel(&t));
-            cam_steer(level0(s_disc->cam_yaw_damp), bm_camera_spring_damp(&t));
-            cam_steer(level0(s_disc->cam_pitch_accel), bm_camera_spring_accel(&t));
-            cam_steer(level0(s_disc->cam_pitch_damp), bm_camera_spring_damp(&t));
-        }
-    }
-
-    // The trace's line for the camera, which updates after the hero's.
-    if (s_set.trace && (turning || s.cam_settle > 0)) {
+    // The trace's line for the camera, which updates after the hero's, while the stick turns it.
+    if (s_set.trace && bm_camera_turning(x, y, flags)) {
         char line[200];
         std::snprintf(
             line,
             sizeof line,
-            "camera option %d gain %.5f -> %.5f stick %.2f %.2f aim %.2f flags %d settle %d",
+            "camera option %d gain %.5f -> %.5f stick %.2f %.2f flags %d",
             option,
             gain,
             want,
             x,
             y,
-            aim,
-            flags,
-            s.cam_settle
+            flags
         );
         s_mod->info(line);
     }
+}
+
+// ---- Clank ---------------------------------------------------------------------------------
+
+// Whether the game is in play with Clank alone and the setting has him: a level, his moby, no scene,
+// vehicle mode 1 (DESIGN.md section 9). Giant Clank (2) is left to the game.
+bool clank_playing() {
+    // The setting's first-game choice, or no hero yet.
+    if (s_set.clank == BM_CLANK_RAC1 || s_mod->loaded_level() < 0
+        || get<std::uint32_t>(hero(BM_HERO_MOBY)) == 0) {
+        return false;
+    }
+
+    return get<int32_t>(level0(s_disc->cinematic_mode)) == 0
+           && get<std::uint8_t>(hero(BM_HERO_VEHICLE_MODE)) == RAC1_VEHICLE_CLANK;
+}
+
+// The steers for Clank's transitions this tick (DESIGN.md 9.4), after his update: a Square the choice
+// still remembers shown as pressed this poll; the punch left at the choice's frame.
+void clank_steer(int st) {
+    const int age = press_age(BM_PAD_SQUARE);
+    bool landing = false;
+    bool reads_square = st == RAC1_STATE_CLANK_IDLE || bm_clank_is_run(st);
+
+    s.steered_state = st;
+
+    // His jump reads Square only landing: past the apex, near the ground, after the takeoff.
+    if (st == RAC1_STATE_CLANK_JUMP || st == RAC1_STATE_CLANK_LEDGE_JUMP) {
+        landing =
+            get<int16_t>(hero(BM_HERO_PAST_APEX)) != 0
+            && get<float>(hero(BM_HERO_GROUND_DISTANCE)) < RAC1_CLANK_LAND_SQUARE_HEIGHT
+            && get<int32_t>(hero(BM_HERO_STATE_TIMER)) > get<int32_t>(hero(BM_HERO_TAKEOFF_FRAME));
+        reads_square = landing;
+    }
+
+    // Square pressed longer ago than rac1 remembers, within the choice's window.
+    if (reads_square && bm_clank_square_buffer(&s_clank, age, landing ? 1 : 0, &s.tick)) {
+        const int newest =
+            (get<int16_t>(pad(BM_PAD_HIST_IDX)) + BM_PAD_HIST_LEN - 1) % BM_PAD_HIST_LEN;
+        pad_add(newest, BM_PAD_SQUARE);
+        s.decided += " clank-square";
+    }
+
+    // Only the punch has a way out to steer.
+    if (st != RAC1_STATE_CLANK_PUNCH) {
+        return;
+    }
+
+    bm_clank_punch_in in{};
+    in.record = get<int32_t>(hero(BM_HERO_ATTACK_RECORD));
+    in.frame = get<float>(hero(BM_HERO_ANIM_FRAME));
+    in.changing = get<int32_t>(hero(BM_HERO_ANIM_CHANGING)) != 0;
+    in.stick = get<float>(hero(BM_HERO_STICK));
+    in.cross = press_age(BM_PAD_CROSS);
+    const bm_clank_punch_steer sw = bm_clank_punch(&s_clank, &in);
+
+    // rac1 jumps out or stands at the steered frame; standing, X is kept from its jump window there.
+    if (sw.steer) {
+        steer<float>(hero(BM_HERO_ANIM_FRAME), sw.frame, true);
+        pad_hide(BM_PAD_CROSS, sw.hide_cross);
+        s.decided += sw.jump      ? " clank-jump-out"
+                     : sw.run_out ? " clank-run-out"
+                                  : " clank-punch-exit";
+    }
+}
+
+// The trace's line for one of Clank's ticks.
+void clank_trace(int st) {
+    // Only when asked for.
+    if (!s_set.trace) {
+        return;
+    }
+
+    char line[400];
+    std::snprintf(
+        line,
+        sizeof line,
+        "clank state %#x stick %.3f (%.2f, %.2f) along %d turnaround %d err %.3f flat %.4f "
+        "target %.4f ground %.4f facing %.3f anim %.2f rec %d square %d cross %d%s",
+        st,
+        get<float>(hero(BM_HERO_STICK)),
+        get<float>(hero(BM_HERO_STICK_X)),
+        get<float>(hero(BM_HERO_STICK_Y)),
+        s.flags.along,
+        s.flags.turnaround,
+        get<float>(hero(BM_HERO_YAW_ERROR)),
+        get<float>(hero(BM_HERO_FLAT_SPEED)),
+        get<float>(hero(BM_HERO_TARGET_SPEED)),
+        get<float>(hero(BM_HERO_GROUND_SPEED)),
+        get<float>(hero(BM_HERO_FACING)),
+        get<float>(hero(BM_HERO_ANIM_FRAME)),
+        get<int32_t>(hero(BM_HERO_ATTACK_RECORD)),
+        press_age(BM_PAD_SQUARE),
+        press_age(BM_PAD_CROSS),
+        s.decided.c_str()
+    );
+    s_mod->info(line);
+}
+
+// Clank's tick (rac1.player.update_motion_input while clank_playing): his jump's entry values on its
+// first tick, his helpers' calls inside (the hooks below, s.clank set), the steers after.
+template <class Original>
+void clank_update(Original original) {
+    s.active = false;
+    s.strafing = false;
+    s.flipping = false;
+    s.flip_steered = false;
+    s.tick = read_tick();
+
+    const int st = state();
+    const bool new_state = st != s.last_state || get<int32_t>(hero(BM_HERO_STATE_TIMER)) == 0;
+    s.last_state = st;
+
+    // His jump's first tick, before its first physics tick: the choice's takeoff, animation frames
+    // and stick speed in the air, where rac1 left its own.
+    if (new_state && st == RAC1_STATE_CLANK_JUMP) {
+        bm_clank_jump in{};
+        in.takeoff = get<int32_t>(hero(BM_HERO_TAKEOFF_FRAME));
+        in.apex = get<float>(hero(BM_HERO_APEX_FRAME));
+        in.target = get<float>(hero(BM_HERO_TARGET_FRAME));
+        in.air_speed = get<float>(hero(BM_HERO_AIR_STICK_SPEED));
+        const bm_clank_jump out = bm_clank_jump_entry(&s_clank, in, &s.tick);
+        put<int32_t>(hero(BM_HERO_TAKEOFF_FRAME), out.takeoff);
+        put<float>(hero(BM_HERO_APEX_FRAME), out.apex);
+        put<float>(hero(BM_HERO_TARGET_FRAME), out.target);
+        put<float>(hero(BM_HERO_AIR_STICK_SPEED), out.air_speed);
+        s.decided += " clank-jump";
+    }
+
+    // rac2 clears its run's flags as the run starts.
+    if (!bm_clank_is_run(st) || new_state) {
+        s.flags = bm_run_flags{0, 0};
+    }
+
+    s.clank = true;
+    s.in_update = true;
+    original();
+    s.in_update = false;
+    s.clank = false;
+
+    // Still his (a scene, a level's end or Ratchet again ends it).
+    if (!clank_playing()) {
+        return;
+    }
+
+    const int after = state();
+    clank_steer(after);
+    clank_trace(after);
+}
+
+// rac1.player.turn_to_heading in Clank's update: his run's turn, his punch's lock-on turn.
+template <class Original>
+void clank_turn(Original original, int32_t mode, float accel, float damp, float limit) {
+    const int st = state();
+    const bm_spring in{accel, damp, limit};
+    bm_spring out{};
+
+    // The run: rac2's spring for rac1's two, the turnaround's from last tick's flag (as rac2 turns).
+    if (bm_clank_is_run(st)
+        && bm_clank_turn(
+            &s_clank, in, get<float>(hero(BM_HERO_STICK)), s.flags.turnaround, &s.tick, &out
+        )) {
+        original(mode, out.accel, out.damp, out.limit);
+        return;
+    }
+
+    // The punch's lock-on turn.
+    if (st == RAC1_STATE_CLANK_PUNCH && bm_clank_punch_turn(&s_clank, in, &s.tick, &out)) {
+        original(mode, out.accel, out.damp, out.limit);
+        return;
+    }
+
+    // A run turn the mod does not know: as it came, and said in the trace.
+    if (bm_clank_is_run(st)) {
+        s.decided += " clank-turn-unknown";
+    }
+
+    original(mode, accel, damp, limit);
+}
+
+// rac1.player.approach_speed in Clank's update: his run's top speed, speeding up and slowing.
+template <class Original>
+void clank_speed(Original original, float up, float down) {
+    // Only the run's; the punch, idle and glide are the same in both games.
+    if (!bm_clank_is_run(state())) {
+        original(up, down);
+        return;
+    }
+
+    const gaddr target = hero(BM_HERO_TARGET_SPEED);
+    const float came = get<float>(target);
+    const bm_speed sp = bm_clank_run_speed(&s_clank, came, down, &s.tick);
+    put<float>(target, sp.target);
+    original(sp.up, sp.down);
+
+    // Give rac1 its own target back.
+    if (get<float>(target) == sp.target) {
+        put<float>(target, came);
+    }
+}
+
+// rac1.player.set_planar_velocity in Clank's update: rac2's flags, after his turn and speed step as
+// rac2 sets them; along the stick while they say so.
+template <class Original>
+void clank_velocity(Original original, float angle) {
+    // Only the run's, and not on magnet ground (rac1's own test for moving along the stick).
+    if (!bm_clank_is_run(state())) {
+        original(angle);
+        return;
+    }
+
+    bm_clank_flag_in in{};
+    in.stick = get<float>(hero(BM_HERO_STICK));
+    in.yaw_error = get<float>(hero(BM_HERO_YAW_ERROR));
+    in.flat_speed = get<float>(hero(BM_HERO_FLAT_SPEED));
+    in.stick_swing =
+        bm_diff(stick_angle_back(RAC2_CLANK_FLICK_FROM), stick_angle_back(RAC2_CLANK_FLICK_TO));
+    bm_clank_flags_update(&s.flags, &s_clank, &in, &s.tick);
+
+    // On magnet ground rac1 keeps his facing.
+    if (get<int16_t>(hero(BM_HERO_UNK308)) != 0) {
+        original(angle);
+        return;
+    }
+
+    original(s.flags.along ? get<float>(hero(BM_HERO_MOVE_YAW)) : 99999.0f);
 }
 
 // ---- The hooks ----------------------------------------------------------------------------
@@ -936,6 +1137,12 @@ void update(Original original) {
     undo_hero_steers();
     s.decided.clear();
 
+    // Clank alone, under the clank setting: his own tick.
+    if (clank_playing()) {
+        clank_update(original);
+        return;
+    }
+
     // Out of play or off his feet: the game's own, nothing kept.
     if (!playing()) {
         s.active = false;
@@ -1035,6 +1242,12 @@ void update(Original original) {
 // rac1.player.turn_to_heading: rac2's turns in the run and the strafe's facing.
 template <class Original>
 void turn(Original original, int32_t mode, float accel, float damp, float limit) {
+    // Clank's update.
+    if (s.in_update && s.clank) {
+        clank_turn(original, mode, accel, damp, limit);
+        return;
+    }
+
     // Outside the hero's update, out of play: the call as it came.
     if (!s.in_update || !s.active) {
         original(mode, accel, damp, limit);
@@ -1117,6 +1330,12 @@ void turn(Original original, int32_t mode, float accel, float damp, float limit)
 // rac1.player.approach_speed: rac2's target, acceleration and braking; the slam's drive.
 template <class Original>
 void approach_speed(Original original, float up, float down) {
+    // Clank's update.
+    if (s.in_update && s.clank) {
+        clank_speed(original, up, down);
+        return;
+    }
+
     // Outside the hero's update or out of play: the call as it came.
     if (!s.in_update || !s.active) {
         original(up, down);
@@ -1204,6 +1423,12 @@ void approach_speed(Original original, float up, float down) {
 // rac1.player.set_planar_velocity: along the stick where rac2 moves him along it.
 template <class Original>
 void planar_velocity(Original original, float angle) {
+    // Clank's update.
+    if (s.in_update && s.clank) {
+        clank_velocity(original, angle);
+        return;
+    }
+
     // Outside the hero's update or out of play: the call as it came.
     if (!s.in_update || !s.active) {
         original(angle);
@@ -1300,19 +1525,31 @@ std::uint32_t strafe_buttons(const std::string& v) {
 }
 
 // The camera setting's value as the manifest allows it (camera.h's BM_CAMERA_*); Going Commando's,
-// the default, for anything else.
+// the default, for anything else, 0.3.0's `modern` among them (the port hands the default for a value
+// the manifest no longer lists; this is for a host that does not).
 int camera_choice(const std::string& c) {
     // The first game's own.
     if (c == "rac1") {
         return BM_CAMERA_RAC1;
     }
 
-    // Modern.
-    if (c == "modern") {
-        return BM_CAMERA_MODERN;
+    return BM_CAMERA_RAC2;
+}
+
+// The clank setting's value as the manifest allows it (clank.h's BM_CLANK_*); the default, enhanced,
+// for anything else.
+int clank_choice(const std::string& c) {
+    // The first game's own.
+    if (c == "rac1") {
+        return BM_CLANK_RAC1;
     }
 
-    return BM_CAMERA_RAC2;
+    // Going Commando's.
+    if (c == "rac2") {
+        return BM_CLANK_RAC2;
+    }
+
+    return BM_CLANK_ENHANCED;
 }
 
 }  // namespace
@@ -1348,17 +1585,20 @@ void load(openrac::Mod& mod) {
     s_set.twist = mod.setting<bool>("twist");
     s_set.wrench = mod.setting<bool>("wrench");
     s_set.camera = camera_choice(mod.setting<std::string>("camera"));
+    s_set.clank = clank_choice(mod.setting<std::string>("clank"));
     const char* env = std::getenv("OPENRAC_ENHANCED_MOVEMENT_TRACE");
     s_set.trace = mod.setting<bool>("trace") || (env != nullptr && std::strcmp(env, "1") == 0);
 
     // 3. Every piece of state the hooks keep.
     s = State{};
+    s_clank = bm_clank_params_for(s_set.clank);
 
     const bool strafe = s_set.strafe != 0;
-    const bool movement = s_set.ground || s_set.air || strafe || s_set.wrench;
+    const bool clank = s_set.clank != BM_CLANK_RAC1;
+    const bool movement = s_set.ground || s_set.air || strafe || s_set.wrench || clank;
     const bool camera_turn = s_set.camera != BM_CAMERA_RAC1;
 
-    // Everything off, the camera the first game's: no hooks at all, the game as it is.
+    // Everything off, the camera and Clank the first game's: no hooks at all, the game as it is.
     if (!movement && !camera_turn) {
         mod.info("everything off: no hooks taken");
         return;
@@ -1373,21 +1613,21 @@ void load(openrac::Mod& mod) {
     }
 
     // 5. The hook points. Every one runs the game's code (or the next mod's) when it has nothing to do.
-    // The hero's update and animation, for every part but the camera.
+    // The hero's update and animation, for every part but the camera (Clank's too).
     if (movement) {
         mod.hook<hp::Hero_UpdateMotionInput>([](auto original) { update(original); });
         mod.hook<hp::Hero_AdvanceAnimation>([](auto original) { advance_animation(original); });
     }
 
-    // The run's turns and velocity, and the strafe's; the wrench's lock-on turn.
-    if (s_set.ground || strafe || s_set.wrench) {
+    // The run's turns and velocity, and the strafe's; the wrench's lock-on turn; Clank's run and punch.
+    if (s_set.ground || strafe || s_set.wrench || clank) {
         mod.hook<hp::Hero_TurnToHeading>([](auto original, int32_t m, float a, float d, float l) {
             turn(original, m, a, d, l);
         });
     }
 
-    // The velocity along the stick.
-    if (s_set.ground || strafe) {
+    // The velocity along the stick (Clank's too).
+    if (s_set.ground || strafe || clank) {
         mod.hook<hp::Hero_SetPlanarVelocity>([](auto original, float angle) {
             planar_velocity(original, angle);
         });
@@ -1395,8 +1635,8 @@ void load(openrac::Mod& mod) {
 
     std::string missing;
 
-    // The speeds and the slam's drive: a hook point of the 1.x line, so a port may lack it.
-    if (s_set.ground || s_set.wrench) {
+    // The speeds and the slam's drive, Clank's run: a hook point of the 1.x line, so a port may lack it.
+    if (s_set.ground || s_set.wrench || clank) {
         // Taken, or refused by a port without it: the rest of the mod still loads.
         try {
             mod.hook<hp::Hero_ApproachSpeed>([](auto original, float up, float down) {
@@ -1407,9 +1647,9 @@ void load(openrac::Mod& mod) {
         }
     }
 
-    // The pad: the strafe's buttons, the presses the flips and the wrench steer, and the camera's
-    // words put back before each tick.
-    if (strafe || s_set.wrench || camera_turn) {
+    // The pad: the strafe's buttons, the presses the flips, the wrench and Clank steer, and the
+    // camera's words put back before each tick.
+    if (strafe || s_set.wrench || camera_turn || clank) {
         mod.hook<hp::Pad_ProcessReport>([](auto original, gaddr p, gaddr report, int32_t size) {
             process_report(original, p, report, size);
         });
@@ -1434,17 +1674,19 @@ void load(openrac::Mod& mod) {
                         + (s_set.twist ? ", twist" : "")
                   : "off")
         + ", wrench " + (s_set.wrench ? "Going Commando's" : "the game's") + ", camera "
-        + (s_set.camera == BM_CAMERA_RAC2     ? "Going Commando's"
-           : s_set.camera == BM_CAMERA_MODERN ? "modern"
-                                              : "the game's")
+        + (s_set.camera == BM_CAMERA_RAC2 ? "Going Commando's" : "the game's") + ", Clank "
+        + (s_set.clank == BM_CLANK_ENHANCED ? "enhanced"
+           : s_set.clank == BM_CLANK_RAC2   ? "Going Commando's"
+                                            : "the game's")
         + (s_set.trace ? ", trace on" : "") + missing
     );
 
     // The missing speeds are a warning too.
     if (!missing.empty()) {
         mod.warn(
-            "this OpenRAC has no rac1.player.approach_speed: Ratchet keeps the first game's speeds "
-            "(and the slam's drive)"
+            "this OpenRAC has no rac1.player.approach_speed: Ratchet and Clank keep the first "
+            "game's "
+            "speeds (and the slam's drive)"
         );
     }
 }

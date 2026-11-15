@@ -237,11 +237,14 @@ mod, with each `camera` choice (the other settings at their defaults), and in Op
 on the same route (Oozla, level 1; the rac2 routes as the wrench's above). rac1 ran on Veldin
 (level 0) on both discs.
 
+**`modern` was removed in 0.3.1** (PLAN.md section 10; the next section). Its rows and notes below
+are 0.3.0's, kept for the record and marked *removed in 0.3.1*: they are not how the mod plays now.
+
 ```sh
 CAM="c60:0:45:128:128:255:128,c165:0:45:128:128:0:128,c270:0:60:128:128:200:128,c390:0:40:128:128:128:0,c470:0:40:128:128:128:255,c560:0:6:128:128:255:128"
-tools/playtest.sh /tmp/pt cam_modern 0 '{"camera": "modern"}' ROUTE="$CAM" CF=640
+tools/playtest.sh /tmp/pt cam_rac2 0 '{"camera": "rac2"}' ROUTE="$CAM" CF=640
 tools/playtest.sh /tmp/pt cam_rac2_fast 0 '{"camera": "rac2"}' ROUTE="$CAM" CF=640 OPENRAC_WRITE="1:15EDE4:2:30000"
-python3 tools/playtest_analyze.py --camera /tmp/pt/cam_modern.jsonl 165 44 270 60 560 6 390 40
+python3 tools/playtest_analyze.py --camera /tmp/pt/cam_rac2.jsonl 165 44 270 60 560 6 390 40
 ```
 
 The route (the right stick, `RX:RY` after the left stick's `LX:LY`): full right, then full left, for
@@ -261,7 +264,7 @@ rac2's at `0x001A7BB4`). `OPENRAC_WATCH` read the camera's numbers in the runnin
 | rac2, its own port | 77.5 | 11 | 24 | 16.1 | 31 | 25.7 |
 | `camera` `rac1` | 77.5 | 11 | 24 | 16.1 | 32 | 25.7 |
 | `camera` `rac2` | **131.2** | 11 | 24 | 27.3 | 33 | 43.5 |
-| `camera` `modern` | **234.0** | **2** | **6** | **9.7** | **11** | 76.2 |
+| `camera` `modern` (0.3.0; removed in 0.3.1) | 234.0 | 2 | 6 | 9.7 | 11 | 76.2 |
 
 **The fast step:**
 
@@ -270,7 +273,7 @@ rac2's at `0x001A7BB4`). `OPENRAC_WATCH` read the camera's numbers in the runnin
 | rac1 without the mod, and `rac1` | 95.4 | 24 | 19.8 | 31.7 |
 | rac2, its own port | 131.0 | 24 | 27.3 | 43.5 |
 | `camera` `rac2` (every step) | 131.2 | 24 | 27.3 | 43.5 |
-| `camera` `modern` | 288.0 | 6 | 11.9 | 93.8 |
+| `camera` `modern` (0.3.0; removed in 0.3.1) | 288.0 | 6 | 11.9 | 93.8 |
 
 PAL v2.00 gave every number in both tables to the decimal (OpenRAC runs it at 60 Hz).
 
@@ -280,21 +283,23 @@ on the default step (NTSC-U and PAL), the fast step (NTSC-U) and the slow step (
 `OPENRAC_WRITE="1:15EEE4:0:30000"`), as rac2's own port on its fastest step (131.0, 27.3).
 
 - **The 6-tick flick**: rac1 and rac2's port 16.6 degrees a second held (the ramp has not got going),
-  6.6 degrees coasted, stopped 34 ticks later; `rac2` 28.2, 11.2, 35; `modern` 191.3, 6.1, 11.
+  6.6 degrees coasted, stopped 34 ticks later; `rac2` 28.2, 11.2, 35; 0.3.0's `modern` (removed in
+  0.3.1) 191.3, 6.1, 11.
 - **The pitch** (the stick up for 40 ticks from level, -6 degrees): rac1 and `rac2` reach -30.5 at
   58.6 degrees a second at the fastest, still moving when the stick lets go, and come back to -27.7
-  40 ticks later; rac2's port the same (58.9, -25.7). `modern` reaches the game's 40-degree limit
-  (-60.1; 90% of the way after 20 ticks) at up to 207.9 a second, and comes back to -9.7 in 40 ticks: the
-  game's return, three times as quick.
-- **Modern's spring**: `OPENRAC_WATCH` showed rac1's springs at 0.2 / 0.7 from the press until 20
-  ticks after letting go, then 0.015 / 0.2 again.
+  40 ticks later; rac2's port the same (58.9, -25.7). 0.3.0's `modern` (removed in 0.3.1) reached
+  the game's 40-degree limit (-60.1; 90% of the way after 20 ticks) at up to 207.9 a second, and came
+  back to -9.7 in 40 ticks: the game's return, three times as quick.
+- **0.3.0's `modern` spring** (removed in 0.3.1): `OPENRAC_WATCH` showed rac1's springs at 0.2 / 0.7
+  from the press until 20 ticks after letting go, then 0.015 / 0.2 again.
 - **First person** (L1 held, the right stick full right): 87.4 degrees a second in rac1 and in rac2's
   port, half after 15 ticks; at a third of the stick 9.5 in both. The same with every choice: the
   setting does not touch it.
 - **Clank** (Orxon, the standard route's right-stick turn at c760): 76.8 degrees a second without
-  the mod, 234.0 with `modern`.
-- **The camera alone** (every other setting off, `camera` `modern`): the mod took
-  `rac1.pad.process_report` and `rac1.camera.follow.apply_overrides` only, and turned at 234.0.
+  the mod, 234.0 with 0.3.0's `modern` (removed in 0.3.1).
+- **The camera alone** (every other setting off, `camera` `modern` in 0.3.0, removed in 0.3.1): the
+  mod took `rac1.pad.process_report` and `rac1.camera.follow.apply_overrides` only, and turned at
+  234.0. 0.3.1 with a saved `modern` takes the same two and turns at 131.2 (`rac2`; the next section).
 
 **Strafing with the camera** (`c60:100:30:128:128,c90:100:40:128:128:255:128,c130:100:40:128:128,c170:100:60:0:128:255:128,c230:100:30:128:128`:
 L2 held standing and the right stick full right, then circle-strafing, the left stick left and the
@@ -303,9 +308,9 @@ right stick right):
 | | Standing: camera | Facing off the camera (mean / most) | Circling: camera | Facing off the camera |
 |---|---|---|---|---|
 | `rac1` | 60.5 degrees a second | 8.6 / 14.6 degrees | 71.2 | 8.0 / 10.4 |
-| `modern` | 232.1 | 27.4 / 30.7 | 159.0 | 17.9 / 26.9 |
+| `modern` (0.3.0; removed in 0.3.1) | 232.1 | 27.4 / 30.7 | 159.0 | 17.9 / 26.9 |
 
-Under `modern` he still strafes and faces the camera, on Going Commando's strafe turn (DESIGN.md
+Under 0.3.0's `modern` he still strafed and faced the camera, on Going Commando's strafe turn (DESIGN.md
 4.1), whose lag grows with the camera's speed. `rac1` played this route tick for tick as the build
 before the camera did. `rac2` at Going Commando's fastest step, measured on 2026-11-14 as the hold's
 last third and the facing off the camera over each hold (by that measure `rac1` gives 76.5 and 7.6 /
@@ -327,9 +332,142 @@ With `rac2` at Going Commando's fastest step (2026-11-14): the wrench combo rout
 differ; the standard route on Veldin, 141 of 901 differ on both discs, the first at c760, the right
 stick's first turn of the camera.
 
-So the movement and wrench numbers above stand. With `modern` the standard route first differs at
-c760 on both discs, the tick the right stick first turns the camera; Ratchet himself first differs at
-c827 (PAL c830), where the strafe held standing turns him to the camera the stick had turned further.
+So the movement and wrench numbers above stand. With 0.3.0's `modern` (removed in 0.3.1) the
+standard route first differed at c760 on both discs, the tick the right stick first turns the camera;
+Ratchet himself first differed at c827 (PAL c830), where the strafe held standing turns him to the
+camera the stick had turned further.
+
+### `modern` removed (0.3.1)
+
+0.3.1 against the 0.3.0 release (its `rac1-enhanced-movement-0.3.0.zip` unzipped, run with
+`PACKAGE=`), on Veldin (level 0), the other settings at their defaults, on both discs (2026-11-14).
+"A saved `modern`" is `{"camera": "modern"}` in the run's `plugins.json`, as 0.3.0 saved it:
+
+```sh
+PACKAGE=/path/to/0.3.0 tools/playtest.sh /tmp/pt cam_rac2_030 0 '{"camera": "rac2"}' ROUTE="$CAM" CF=640
+tools/playtest.sh /tmp/pt cam_modern_031 0 '{"camera": "modern"}' ROUTE="$CAM" CF=640
+python3 tools/playtest_analyze.py --same /tmp/pt/cam_modern_031.jsonl /tmp/pt/cam_rac2_030.jsonl
+```
+
+| 0.3.1 against 0.3.0 (`--same`) | NTSC-U | PAL |
+|---|---|---|
+| `rac1` against `rac1`: the camera route; the standard route | 641 ticks, 0 differ; 901, 0 differ | the same |
+| `rac2` against `rac2`: the camera route; the standard route | 641, 0 differ; 901, 0 differ | the same |
+| A saved `modern` against `rac2`: the camera route; the standard route | 641, 0 differ; 901, 0 differ | the same |
+| The camera route on the slowest step (`OPENRAC_WRITE` option 0): `rac2`, and on NTSC-U a saved `modern`, against `rac2` | 641, 0 differ | 641, 0 differ (`rac2`) |
+| The camera alone (every other setting off), a saved `modern` against `rac2` | 641, 0 differ | the same |
+| A saved `modern` against 0.3.0's own `modern` (the check sees a difference) | 581 of 641 differ, the first at c60 | the same |
+
+`--camera` on 0.3.1 (the turn to the left, the default step): `rac1` 77.5 degrees a second, half
+after 11 ticks, 90% after 24, 16.1 coasted, stopped after 32; `rac2` and a saved `modern` 131.2,
+11, 24, 27.3, 33, on both discs, and `rac2` the same on the slowest step: 0.3.0's numbers above.
+0.3.0's own `modern` turned at 234.0 on the same route. With a saved `modern` the port logs
+`setting "camera" is not a choice within its limits: its default instead` and the mod's line says
+`camera Going Commando's`; with every other setting off it took `rac1.pad.process_report` and
+`rac1.camera.follow.apply_overrides` only.
+
+### Clank (0.4.0)
+
+Clank alone was played on Orxon (level 10), which starts as Clank, on both discs, in the game
+without the mod and with each `clank` choice; and in OpenRAC's rac2 port (`openrac-rac2-ntsc2`),
+whose Aranos Prison (level 14) starts as Clank. Clank stands on a small lift there, so a write of his
+position (`OPENRAC_WRITE`, the hero `0x189E20` + `0x80`) puts him on open floor at (300, 159, 110)
+five frames after control. The rac2 run used the switches the wrench's used (`OPENRAC_SKIP_SCENES=1`,
+`OPENRAC_PRESS="300:4000:10,…"`).
+
+```sh
+CLANK="c30:0:60:128:0,c130:0:60:128:214,c230:0:40:128:255,c270:0:40:128:0,c350:0:30:128:255,c380:0:40:255:128,c460:4000:4,c468:0:30:255:128,c520:0:80:0:128,c540:4000:4,c620:4000:4,c632:4000:40,c720:8000:3,c735:8000:3,c750:8000:3,c820:8000:3:128:0,c822:0:30:128:0,c880:8000:3,c890:4000:3,c980:8000:3,c991:8000:3,c1040:4000:4,c1070:8000:3"
+tools/playtest.sh /tmp/pt clank_enh 10 '{"clank": "enhanced", "trace": true}' ROUTE="$CLANK" CF=1120
+python3 tools/playtest_analyze.py --clank /tmp/pt/clank_enh.jsonl
+# rac2: the same presses, and his position: OPENRAC_WRITE=c5:189EA0:43960000:1,c5:189EA4:431F0000:1,c5:189EA8:42DC6666:1
+```
+
+The route, from control:
+1. a full-stick run for 60 ticks, then let go;
+2. about half the stick (0.51 past the dead zone) for 60;
+3. 40 ticks one way, then 40 fully the other way (a turnaround);
+4. a run, then the stick turned 90 degrees;
+5. a jump, with the stick pushed sideways in the air;
+6. a running jump;
+7. a jump held into the glide;
+8. three Squares (the second 15 ticks into the first punch);
+9. Square with the stick pushed;
+10. Square then X;
+11. Square, and Square again 11 ticks into that punch;
+12. a jump with Square 30 ticks into it.
+
+`--clank` measures each from the port's trace (rac2's states read as rac1's). A read-only probe
+library, not part of the mod, read the punch's animation frame, its record and his ground distance
+each tick in both games, and the hits and deaths (`rac1.combat.get_hit`, `rac1.moby.record_death`,
+`rac1.player.take_damage`, the original always called).
+
+**The route** (ticks; NTSC-U; PAL v2.00 gave every number, tick for tick):
+
+| | rac1 without the mod, and `rac1` | `rac2` | `enhanced` | rac2's own port |
+|---|---|---|---|---|
+| Run, full stick | 3.00 u/s, 90% after 24 | 3.00, 11 | **3.45**, 12 | 3.00, 10 |
+| Letting go | stopped after 2, slid 0.045 | 2, 0.039 | 2, 0.046 | 1, 0.000 |
+| Half stick (0.51) | 1.53 u/s | 1.52 | 1.75 | 1.52 |
+| Turnaround: moving the new way / facing it / carried the old way | 19 / 30 / 0.383 | 1 / 16 / 0 | 1 / 16 / 0 | 1 / 16 / 0 |
+| 90-degree turn: within 10 degrees after | 19 | 7 | 7 | 7 |
+| Jump: off the ground after X / apex / landed after | 6 / 1.004 / 51 | 4 / 1.004 / 49 | 4 / 1.004 / 49 | 4 / 1.004 / 49 |
+| Air stick in the jump: speed, 90% after | 2.00 u/s, 4 | 2.00, 4 | **2.51**, 6 | 2.00, 4 |
+| Running jump: distance (speed), apex | 1.10 (1.99 u/s), 1.004 | 1.10, 1.004 | **1.37 (2.49)**, 1.004 | 1.10, 1.004 |
+| Glide: ticks, falling | 27, 1.44 u/s | 32, 1.44 | 32, 1.44 | 32, 1.44 |
+| Three Squares: punch, idle, punch | 24, 6, 24 (the second Square lost: 9 polls before the first punch ended) | 22, 1, 22 | 22, 1, 22 | 22, 1, 22 |
+| Square with the stick pushed: punching, running after | 24, 25 | 22, 23 | **18, 19** | 22, 23 |
+| Square then X: jumping after | 21 | 18 | 18 | 18 |
+| Square, Square 11 polls into the punch | one punch | one punch | **two** | one punch |
+| Square 6 polls before the jump nears the ground | no punch | no punch | **a punch on landing** | no punch |
+
+- The game itself starts and stops the run a tick after rac2's port: rac2 moves on the tick the stick
+  goes, rac1 a tick later. The mod does not change that. With it, the ramp is rac2's to the tick (0.3
+  u/s more each tick: 18 u/s²).
+- **The punch** under `rac2` and `enhanced`, frame by frame from the probe: the blend (5 ticks), then
+  half a frame a tick from frame 1, the hit from frame 3 to 6 (ticks 9 to 15, as without the mod). The
+  mod's trace says `clank-punch-exit` where it stands at frame 9.5, `clank-jump-out` where X jumps out
+  at 7.5 or later, and `clank-run-out` where the stick runs out at 7.5. rac2's port reaches frame 3 at
+  tick 7 and lunges 0.69 units; the mod's punches lunge 0.81, as the game's.
+- **Heights** are the same in every column (1.004 for the route's 4-tick X).
+- **`rac1`** played the route tick for tick as the game without the mod: 1121 ticks, 0 differ (both
+  discs).
+
+**Orxon as built** (the start, its gates, the first enemy):
+- **Crates.** Turned round from the start, toward the crates behind it, with Square every 26 ticks
+  (`c20:0:110:203:231` then Square from c150). Each choice breaks the same five crates (bolt, oom-oom
+  and metal crates): without the mod and with `rac1` at c240 to c284, with `rac2` at c215 to c263, with
+  `enhanced` at c214 to c233.
+- **The first toxic crab.** Forward through `gate_1` (it opens for Clank by itself) and the building to
+  `gate_2` (open), then pushing toward the crab behind it, with Square every 25 ticks (`c20:0:480:128:0`,
+  `c500:0:700:56:24`, Square from c590).
+
+  | | At `gate_2` | Punches | Hits on the crab | Hurt at | Dying |
+  |---|---|---|---|---|---|
+  | Without the mod, and `rac1` (0 differ) | c559 | 16 | 0 | c598, 664, 730, 794 | c830 |
+  | `rac2` | c547 | 17 | 0 | c585, 650, 717, 782 | c818 |
+  | `enhanced` (the shorter first leg below) | | 17 | 0 | c520, 586, 650, 720 | c756 |
+
+  `enhanced` (top speed 3.45) ran a first leg 45 ticks shorter (`c20:0:435:128:0`,
+  `c455:0:745:56:24`, Square from c545), as the route's fixed stick path otherwise reaches its turn
+  further on and pushes him into a corner the crab does not come to; at 3.13 the route above gave
+  c527 at `gate_2` and hurt at c568, 634, 699, 764, dying at c800.
+
+  The encounter plays the same in every choice, sooner: the crab hits him every 65 ticks, four hits
+  end him, he respawns at the start. The script never reaches the crab with a punch, in the game
+  without the mod either: this checks that the encounter is unchanged, not that it is won.
+- PAL v2.00 played both routes tick for tick as NTSC-U, without the mod and with `enhanced`.
+
+**Ratchet unchanged.** Against the build before Clank (0.3.1's tree, `PACKAGE=`), with every setting
+at its default (`clank` `enhanced`), compared tick by tick (`--same`):
+
+| Route | NTSC-U | PAL |
+|---|---|---|
+| The standard route, Veldin | 901 ticks, 0 differ | 901, 0 differ |
+| The standard route, Novalis and Kerwan | 901, 0 differ each | |
+| The wrench combo route, Novalis | 701, 0 differ | 701, 0 differ |
+| The camera route, Veldin | 641, 0 differ | 641, 0 differ |
+| Orxon's standard route with `clank` `rac1` | 901, 0 differ | 901, 0 differ |
+| Every setting off (`clank` `rac1`) against no mod, Veldin | 901, 0 differ, no hooks taken | 901, 0 differ, no hooks taken |
 
 ## Not covered by script
 
@@ -338,11 +476,13 @@ These need a save that has reached them, or a teleport the route does not do yet
 - swimming;
 - the hoverboard (Rilgar);
 - Kalebo III's arena camera;
-- Clank and Giant Clank;
+- Giant Clank, Blarg's Clank part (it starts at its split door, with Triangle), and Orxon's past the
+  first toxic crab (the Gadgebots' containers break on his punch; the way there is not a straight line
+  from the start);
 - grind rails and the Swingshot;
 - the wrench on ice, on magnet ground (Magneboots) and in the grind rails' attack;
 - the camera with a real stick or gyro (steam-deck-pack) rather than scripted full and partial
-  deflections, Giant Clank's camera, and `modern` beside modern-controls (the README says to set
+  deflections, Giant Clank's camera, and the camera beside modern-controls (the README says to set
   `rac1` with it).
 
 The slam's drive from more than 4 above the ground and the lock-on turn's 16.93 rad/s are checked by

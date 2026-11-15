@@ -1,7 +1,8 @@
 # rac1-enhanced-movement: the design
 
 How Ratchet & Clank: Going Commando (rac2) moves Ratchet, how Ratchet & Clank (rac1) does it, and
-how this mod makes rac1 do what rac2 does. Every row names its evidence:
+how this mod makes rac1 do what rac2 does; the same for Clank alone, and how the mod takes him past
+rac2 (section 9). Every row names its evidence:
 - `rac2-decomp` (USA v1.01, level 0's shared hero code);
 - `rac1-decomp` (PAL names);
 - the NTSC decomp OpenRAC carries (`OpenRAC/games/rac1/ntsc-decomp`).
@@ -466,8 +467,14 @@ does). NTSC-U's are the same globals and functions at the US addresses.
 | `Moby_PlaySound` | `func_0022ED80` | `FUN_0022da68` | function | `us_map.tsv` (executable) |
 | `opt_cam_yaw_rate` (the camera speed option, 8.1) | `0x0015EEE4` (`follow_camera_update`'s `vendor_stock[5]`) | `0x0015EDE4` | relocate | NTSC decomp `rnc/game/options.h` |
 | `follow_cam_setting_value` (the turn's gain) | `D_L00_0015F044` | `0x0015EF44` | relocate_level(0) | NTSC decomp `follow_camera_update.c` |
-| `follow_camera_pitch_input_tracking_step_limit`, `_return_step_limit`, `follow_camera_pitch_angle_step_limit` | `D_L00_00161D8C`, `D90`, `D94` | `0x00161CBC`, `CC0`, `CC4` | relocate_level(0) | NTSC decomp `follow_camera_turn_and_pitch_globals.h` |
-| `orbit_yaw_spring_stiffness_gp`, `_damping_gp`, `orbit_pitch_spring_stiffness_gp`, `_damping_gp` | `D_L00_00161DC4`, `DC8`, `DCC`, `DD0` | `0x00161CF4`, `CF8`, `CFC`, `D00` | relocate_level(0) | `names_ntsc.tsv` |
+
+Until 0.3.1 the mod also wrote, for `modern` (8.3), the pitch's three steps
+(`follow_camera_pitch_input_tracking_step_limit`, `_return_step_limit`,
+`follow_camera_pitch_angle_step_limit`: PAL `D_L00_00161D8C`, `D90`, `D94`, NTSC-U `0x00161CBC`, `CC0`,
+`CC4`, from the NTSC decomp's `follow_camera_turn_and_pitch_globals.h`) and the eye's springs
+(`orbit_yaw_spring_stiffness_gp`, `_damping_gp`, `orbit_pitch_spring_stiffness_gp`, `_damping_gp`: PAL
+`D_L00_00161DC4`, `DC8`, `DCC`, `DD0`, NTSC-U `0x00161CF4`, `CF8`, `CFC`, `D00`, from `names_ntsc.tsv`).
+0.3.1 has no use for them, and `discs.h` no longer lists them.
 
 **PAL's 50 Hz** (`set_video_timing`: `g_frame_time` 1/50, `g_frame_scale_sq` 1.44, `frame_scale`
 1.2). OpenRAC does not run it today: it keeps the PAL game in its 60 Hz mode and ticks every game 60
@@ -508,7 +515,9 @@ Hero offsets (`include/structs/hero.h`; seen in the code cited):
 | item slot 0: moby, thrown | `+0x1090`, `+0x10AA` (u8) | `on_slip_ground` | `+0x12EA` (u8) |
 
 The wrench needs no new address: the hero's and the pad's offsets above, and rac1's attack records
-as constants (5.1), the same in every level.
+as constants (5.1), the same in every level. Clank (section 9) needs none either: the hero's offsets
+above, `apex_anim_frame` and `target_anim_frame` (`+0x440`, `+0x444`, `include/structs/hero.h`), and
+his punches' records 7 and 8 as constants (9.1).
 
 Pad (`pad.h`): `analog` `+0x100`, `held` `+0x1A0`, `pressed` `+0x1A4`, `released` `+0x1A8`,
 `prev_held` `+0x1AC`, `raw_held` `+0x1B0`, `raw_pressed` `+0x1B4`, `raw_released` `+0x1B8`,
@@ -518,11 +527,12 @@ Pad (`pad.h`): `analog` `+0x100`, `held` `+0x1A0`, `pressed` `+0x1A4`, `released
 Camera record: vars `+0x70`, kind `+0x86`. The follow camera's vars (8.1): the turn's block at
 `+0x1A8` (the eased stick x `+0x1A8`, the pitch's aim `+0x1B0`, its flags `+0x1B8`, the gain
 `+0x1BC`, a swing's input `+0x1C4`), the orbit `+0x130`, the eye `+0x140`, its yaw and pitch spring
-steps `+0x150`, `+0x154`.
+steps `+0x150`, `+0x154`. The mod reads the flags (for the trace's camera line).
 
-Every camera number the mod reads was also read in the running game on both discs
-(`OPENRAC_WATCH`, PLAYTEST.md): the speed table 1.0 / 1.3 / 1.6 degrees, the option 1, the pitch's
-steps 0.02 / 0.01 / 0.0305, the springs 0.015 / 0.2, on PAL v2.00 and NTSC-U alike.
+Every camera number the mod reads, and the ones the research compared with rac2's, were also read
+in the running game on both discs (`OPENRAC_WATCH`, PLAYTEST.md): the speed table 1.0 / 1.3 / 1.6
+degrees, the option 1, the pitch's steps 0.02 / 0.01 / 0.0305, the springs 0.015 / 0.2, on PAL v2.00
+and NTSC-U alike.
 
 ## 7. Composition with other mods
 
@@ -553,9 +563,16 @@ steps 0.02 / 0.01 / 0.0305, the springs 0.015 / 0.2, on PAL v2.00 and NTSC-U ali
   for its movement speed and response; how that composes with this mod's was not tested.
 - **steam-deck-pack** (the same, manifest and README only) takes no hook point: it turns Steam Input's
   gyro and right trackpad into the game's right stick. The game's camera turn then reads that stick,
-  so this mod's `camera` choice applies to the gyro and trackpad as to the stick (three times as fast
-  under `modern`). They work together; its own sensitivity setting adjusts the gyro on top.
+  so this mod's `camera` choice applies to the gyro and trackpad as to the stick. They work together;
+  its own sensitivity setting adjusts the gyro on top.
 - No other mod in the index names the camera or the right stick.
+- **Clank** (0.4.0, section 9): no mod in the index or in openrac-mods' own folders changes how Clank
+  handles (manifests and READMEs read: their "Clank" is the game's name, or Orxon's story order in
+  item-randomizer, or vehicle exclusions in multiplayer and keyboard-mouse). difficulty's *Ratchet's
+  speed* takes `approach_speed`; in his run the mod reads its factor from `down` as for Ratchet and
+  applies it to its own speeds, in either load order, so the two compose. difficulty's enemy speed on
+  the toxic crabs and lock-strafe (already a conflict, and on foot only) touch nothing of his. No
+  conflict is declared.
 
 ## 8. The camera (setting `camera`)
 
@@ -620,7 +637,7 @@ on the fastest step; first person 87.4. Each number is the first game's, or the 
 So **at the games' default camera speed, Going Commando turns the camera exactly as the first game
 does.** The one difference in the turn itself is the fastest step. The setting's `rac2` therefore
 takes that fastest step on every step of the game's option (the user's choice, PLAN.md section 10),
-so the three choices rise one above the other: 78, 132 and 234 degrees a second by default.
+so the two choices rise one above the other: 78 and 132 degrees a second by default.
 
 Differences around the turn, reported and left as rac1's (none is the turn's speed or feel):
 - **Pulled round behind him.** rac2's overrides write 0.85 where rac1's write 0.75 to the blend weight
@@ -641,17 +658,22 @@ before step 3, so the mod sets there what the rest of the update reads, for that
 | Choice | What the update reads | Put back |
 |---|---|---|
 | `rac1` | nothing: the hook is not taken for it (with the strafe off) | |
-| `rac2` | `follow_cam_setting_value` × rac2's fastest entry (2.2 degrees a tick) over rac1's entry for the option: 132 degrees a second on every step (2.2 for 1.0, 1.3 or 1.6). Another mod's scaling of the gain survives (the ratio); an option rac1's table does not have keeps the gain | rac1 sets it again from its table at its next update; the mod's pad hook also puts it back before the next tick |
-| `modern` | the gain × 3 × 60 × `g_frame_time`; while the pitch is the player's (the stick's y past 0.3, or its aim at `+0x1B0` not back at 0), the pitch's three steps × the same; while the stick turns the camera and 20 ticks after, the eye's two springs at 0.2 / 0.7 (× `g_frame_scale_sq` and × `frame_scale` at 50 Hz) | the pad hook (`rac1.pad.process_report`, before the next tick) and the hook's own start: each word that still holds what the mod wrote, in the level whose program it is in |
+| `rac2` | `follow_cam_setting_value` × rac2's fastest entry (2.2 degrees a tick) over rac1's entry for the option: 132 degrees a second on every step (2.2 for 1.0, 1.3 or 1.6). Another mod's scaling of the gain survives (the ratio); an option rac1's table does not have keeps the gain | rac1 sets it again from its table at its next update; the mod's pad hook (`rac1.pad.process_report`, before the next tick) and the hook's own start also put it back if it still holds what the mod wrote, in the level whose program it is in |
 
-**Why these numbers for `modern`** (PLAN.md section 10): three times the game's own gain is 234
-degrees a second at the default step (180 and 288 at the others): three times both games' default,
-1.8 times Going Commando's fastest. The pitch's steps scale with it. Three times the gain on rac1's
-eye spring would ramp as slowly (90% after 24 ticks) and coast three times as far (48 degrees after
-letting go). So while the stick turns the camera, the eye follows at 0.2 / 0.7: 90% of the stick's
-rate within 6 ticks, about 10 degrees coasted, stopped within 10 ticks. That is a short ramp, not a
-snap, and the stop stays crisp. `tests/camera_test.c` works both springs through `rope_spring_turn`
-and gets the play-test's numbers.
+The eye keeps rac1's spring under both: with `rac2`'s gain it ramps as the game's does (90% after 24
+ticks) and coasts 2.2 / 1.3 as far (27 degrees). `tests/camera_test.c` works it through
+`rope_spring_turn` and gets the play-test's numbers.
+
+**Removed in 0.3.1: `modern`** (PLAN.md section 10). 0.3.0 had a third choice: the gain × 3 × 60 ×
+`g_frame_time` (180 / 234 / 288 degrees a second by the game's step), the pitch's three steps × the
+same while the pitch was the player's, and the eye's two springs at 0.2 / 0.7 while the stick turned
+the camera and 20 ticks after. Played, it was far too fast even on the game's slowest step, so 0.3.1
+removed it. A saved `modern` is not a value of the 0.3.1 manifest: the launcher drops it when it
+installs 0.3.1 (OpenRAC `launcher/core/src/plugins.rs`, `install`: "Settings the new version no longer
+has, or whose values it no longer takes, go"), the port gives the default for it and logs why
+(`port/game/common/mod_manifest.cpp`, `resolve_settings` and `value_of`: a `choice` not among the
+choices is "not a choice within its limits: its default instead"), and the mod's own
+`camera_choice()` reads any value it does not know as `rac2`.
 
 Left out:
 - **First person** stays the game's in every choice. Both games have the same numbers there, so
@@ -663,4 +685,193 @@ Left out:
   point-of-interest swing's numbers are level design.
 
 The setting changes nothing else: with `rac1` every route plays tick for tick as before, and with
-`rac2` and `modern` the game's camera is untouched until the right stick moves (PLAYTEST.md).
+`rac2` the game's camera is untouched until the right stick moves (PLAYTEST.md).
+
+## 9. Clank (setting `clank`, 0.4.0)
+
+Sources:
+- rac1: `hero_update_movement` cases 0x43 to 0x52 (`hero_water_and_ground_motion.c`), the
+  transitions' Clank cases (`hero_item_input_and_hud.c`, from `case HERO_STATE_VEHICLE_MODE_1_IDLE`),
+  `HeroEnterMoveState`'s cases 0x43 to 0x52 and the jump arm's `0x49` (`hero_vehicle_and_collision.c`),
+  `hero_frame_update` (`hero_update_ground_material.c`), `enter_hero_vehicle_mode`
+  (`hero_animation_slots.c`). Blarg's copies (`l06_blarg/hero_movement.c`, `hero_items_and_hud.c`,
+  `hero_idle_and_items.c`) differ from these only in names (diffed).
+- rac2: `func_L00_002BA7D8` cases 0x3F to 0x4E, `func_L00_002CB3A8` cases 0x3F to 0x4E,
+  `func_L00_002C42E0` cases 0x3F to 0x4E and its jump arm's `0x45`; the PAL release's entry in
+  `src/pal/levels/shared/L00_002C4480-sw.c`.
+- Both games' attack records 7 and 8, and play in OpenRAC's ports (PLAYTEST.md, Clank).
+
+### 9.1 rac1's Clank
+
+**What he is.** Clank alone is a "vehicle mode" of the hero: `enter_hero_vehicle_mode(1, 0x43, his
+moby)` sets `vehicle_mode` (`+0x20A4`) to 1, swaps the hero's moby for Clank's and his health for his
+own, and enters state 0x43. Two levels do it: Orxon (level 10, `platforms_doors_and_bombthrower.c`,
+the shared code's family of levels) and Blarg (level 6, `hangar_door_and_gas_vents.c`, its own copies).
+Drek's Fleet (17) carries the code but nothing there enters it. Mode 2 is Giant Clank (9.3), mode 3
+the Hologuise (`vehicle_mode3_moby`).
+
+**His tick.** `update_hero_frame_pipeline` sends any vehicle mode to `hero_frame_update`, which runs
+`advance_hero_animation`, `hero_update` (his state's case of `hero_update_movement`), the ground
+material, the level's transitions, the easing records and his moby: the same hook points as
+Ratchet's, in the same order (9.4).
+
+**His states** (rac2's numbers beside them):
+
+| rac1 | rac2 | | Control mode |
+|---|---|---|---|
+| 0x43 | 0x3F | idle | 0 |
+| 0x44 (0x50) | 0x40 (0x4C) | run (0x50 shares its code; nothing enters it) | 1 |
+| 0x45 | 0x41 | fall | 2 |
+| 0x46, 0x47 | 0x42, 0x43 | hurt, dying | 7, 0x14 |
+| 0x49 | 0x45 | jump | 4 |
+| 0x4A, 0x4B, 0x4D, 0x4E | 0x46, 0x47, 0x49, 0x4A | the ledge: grab, hang, shimmy | 3 |
+| 0x4C | 0x48 | jump from the ledge | 4 |
+| 0x4F | 0x4B | glide (his heli, X held) | 5 |
+| 0x51 | 0x4D | punch | 6 |
+| 0x52 | 0x4E | slip | 2 |
+
+**Moving** (case 0x44):
+
+| | rac1 | Evidence |
+|---|---|---|
+| Speed | the stick times 3 units a second, at any deflection: `stick_target(3.0)` sets the target to the stick vector's length times the speed. Already analog (Ratchet's walk and run bands are his alone) | `stick_target` (`hero_animation_slots.c`) |
+| Speeding up, slowing | `speed_step(7.5 k, 8.5)`, k = 1 − 0.3 × the angle between his facing and the stick, at least 0 | case 0x44 |
+| Turning | t = stick + 0.35. Under 1.5 u/s `turn_to(0.035 t, 0.15, 9.599311 t)`, else `turn_to(0.008 t, 0.15, 9.948377 t)`: at a full-stick run 0.0108 / 0.15 / 13.4 rad/s, 90 degrees in 29 ticks (`clank_test.c` runs the spring) | case 0x44 |
+| Along the stick | never: `set_planar_vel` takes the move yaw only with `unk3B8`, which his run entry clears and nothing sets for him. A turnaround runs a loop along his facing | `HeroEnterMoveState` case 0x44 |
+| Leaving the run | idle as soon as the stick is under 0.17 on the ground: no skid | transitions, his run |
+| Stopping | idle clears his velocity and has no momentum to slide on (`reduce_and_apply_hero_planar_velocity_addend` is Ratchet's idle's, not his): he stops in a tick | case 0x43 |
+| Falling | `stick_target(3.0)`, the air's velocity code (turn 0.04 / 0.2, steering 20 u/s²), gravity 12, at most 10 u/s down; X within 5 polls more than 0.6 up glides | case 0x45, transitions |
+| L1 / L2 standing | the first-person look (state 1) | transitions, idle |
+
+**Jumping** (0x49, its entry in the jump arm): heights 1.3 tapped and 1.35 held (X held while the
+state's timer is under 15 grows it), gravity 25, off the ground after `scale_ticks(5)` ticks, the
+animation's apex at frame 18 and its landing at 27, the stick's speed in the air 2.0 (`air_stick_speed`;
+the run's is 3.0), turning 15.01 rad/s, braking 50 before takeoff. Landing: X within 4 jumps again;
+with the stick past 0.5 he runs at once, else he stands after 12 ticks. X within 5 polls more than 0.55
+up glides (0x4F): 2.0 u/s along his facing, `speed_step(15, 7)`, turning 8.73 rad/s, falling 1.44 u/s,
+while X is held (31 ticks without it end it). The ledge's jump (0x4C) is 1.55 high and moves itself.
+
+**The punch** (0x51). Square within 9 polls standing or running, or within 5 landing from a jump,
+punches. The entry takes record 7, or the other of 7 and 8 while chaining: the last state's control
+mode the attack's (or the one before it, with the punch's animation 0xF or 0x10 still playing) and the
+last punch's frame under its record's +0x8.
+
+| | Records 7 and 8 (both games) |
+|---|---|
+| +0x8 chain under | 16 |
+| +0xC first (the windows count from it) | 3 |
+| +0x10 Square chains from | 12 |
+| +0x14 X jumps out after | 8, within (frame − 3) × 2 polls |
+| +0x18 he stands after | 10 |
+| +0x1C, +0x20 hits | 3 to 6 |
+
+Read from the PAL disc's level programs of levels 0, 6, 10, 15 and 17 (rac1-decomp's
+`tools/extract/extract.py raw`, the table found by its first record) and from the NTSC-U game's level 0
+(`OPENRAC_WATCH`): all the same. The open frame (12) is past the exit (10), so the punch itself never
+chains: he stands at frame 10.5 with no animation of his own (`HeroEnterMoveState(0x43, 0)`), the punch
+plays on, and idle's Square window (9 polls) starts the other punch while it is under frame 16.
+
+In the punch (case 0x51): the lunge drives at 3.5 u/s under frame 5.5; between frames 3 and 6 a sphere
+of 0.25 at his fists (points 2, 3 or 0, 1) hits with `0x10000`, damage 1.0; the animation speed eases to
+1; with a target or a heading locked he turns at `turn_to(0.05, 0.2, 15.01)` (the wrench's), else
+`update_hero_target_heading(5, 45°, 45°)`; `speed_step(37, 28)`. Measured (PLAYTEST.md): the blend takes
+5 ticks, then the punch runs at half a frame a tick: the hit from its 9th tick to its 15th, standing
+after 24, a lunge of 0.81 units, and Square in time chains with 1 tick of idle between punches.
+
+### 9.2 rac2's Clank, and what differs
+
+The same states, the same code paths, mostly the same numbers. rac2's Aranos Prison (level 14) starts
+as Clank, on a lift; OpenRAC's rac2 port plays it, and a write of his position (`OPENRAC_WRITE`,
+`+0x80` of the hero at `0x189E20`) puts him on open floor at (300, 159, 110) to measure (PLAYTEST.md).
+
+| | rac1 | rac2 | Evidence (rac2) |
+|---|---|---|---|
+| Run speed | 3 × stick | the same | `func_L00_002B39F0(0.050000004f)` |
+| Speeding up, slowing | 7.5 k, 8.5 | **18 and 20**, no k | `func_L00_002B41B8(0.005f, 0.0055555557f)` |
+| Turn | by stick and speed (above) | **0.033 / 0.15 / 9.95** at any stick and speed: 90 degrees in 11 ticks | `func_L00_002B3EF8(0, var_f12_21, 0.15f, var_f14)` |
+| Turnaround | the flick bit of the pad, no spring of its own | **0.037 / 0.15 / 11.69** (180 degrees in 17 ticks) while `+0x40F` is set | the same call |
+| Along the stick (`+0x40C`) | never | **under 0.7 u/s**; also in a turnaround. Cleared within 5 degrees | case 0x40 |
+| The turnaround (`+0x40F`) | — | under 0.7 u/s more than 100 degrees off with the stick past 0.8; or the stick's angle 0 polls back (`func_L00_0032F038(0)`, which reads the ring's oldest entry, 30 polls ago) and 2 back more than 150 degrees apart, 70 degrees off, the stick past 0.8. Cleared within 4 degrees | case 0x40; `L00_0032EFB0.c` |
+| Its speed cap in the turnaround | — | 3 − 1.27 × the error, written to the target **after** the speed step, and the next tick's stick overwrites it: no effect | case 0x40 |
+| Idle | 12.6, the velocity cleared | the same | `func_L00_002B41B8(0.0f, 0.0035f)` |
+| The jump's takeoff | 5 ticks | **3** (2 in its PAL release), with its animation's apex at 15 and landing at 24 (18, 27) | `func_L00_002C42E0`, `SHORT(0x4AC) = 3` |
+| The jump's heights, gravity, air speed | 1.3 / 1.35, 25, 2.0 | the same | the same line |
+| The glide | 2.0, 8.73, 15 / 7, 1.44 | the same | case 0x4B |
+| The punch's lock-on turn | 15.01 | **16.93** (the wrench's) | `func_L00_002B3EF8(0, 0.05f, 0.2f, 0.2821616f)` |
+| The punch's records, lunge, hit, speed step | | the same | records 7 and 8; case 0x4D |
+| Windows: X, Square, Square landing | 8, 9, 5 | the same | `func_L00_0032EF10(0x40, 8)`, `(0x80, 9)`, `(0x80, 5)` |
+| L1 / L2 standing | look | L1 looks (L2 is rac2's strafe) | `pad & 4` |
+
+**The punch's timing** differs where the code does not. Measured in rac2's port (PLAYTEST.md): the
+punch reaches its frame 3 seven ticks in and stands after 22 (rac1: nine and 24); a Square then X jumps
+out after 18 ticks (21); the lunge covers 0.69 units (0.81). After the 5-tick blend rac2's punch reads
+frame 2.0 where rac1's reads 1.0 (both games start it with `set_hero_animation(0xF or 0x10, 1, 5)`), so
+every frame of the records comes 2 ticks sooner: the way out, the hit and the end of the lunge.
+
+So rac2's Clank is quicker to get going, to stop, to turn and to turn around; he moves along the stick
+when slow; he leaves the ground 2 ticks sooner; he turns to a target quicker; his punch leaves 2 ticks
+sooner. His speed, jump heights, air control, glide, windows and hits are the first game's.
+
+### 9.3 Giant Clank (left out)
+
+rac1's Giant Clank is vehicle mode 2, entered on Quartu (level 15, `electric_water.c`) for its boss
+fight: idle 0x5A, a run (0x5B) at 6 u/s × stick turning at `turn_to(0.021 t, 0.3, 2.27 t)` (90 degrees
+in 35 ticks: a mech) that hits what it walks into, a jump (0x5C), a punch combo (0x60, hits of 4.0 and
+40), missiles (0x5F) and a charged blast (0x61). Its numbers are Quartu's arena's: the fight is built
+around his slowness. rac2's Giant Clank fights in orbit (Dobbo Orbit and Damosel Orbit, levels 22 and
+23), flying, with code of its own (`src/levels/shared/L22_002A8B98*.c` sets its vehicle mode): there is no
+Going Commando version of the walking mech to port, and no anchor for "past it". The hooks would reach his run (the same helpers), but a quicker Giant Clank would change a
+boss fight's balance with nothing to ground it. Left as the game's in every choice: the mod acts only in
+vehicle mode 1 (`clank_playing`), and the load test checks mode 2 passes through.
+
+### 9.4 How the hook points reach Clank
+
+| Hook point | Reached for Clank? | With |
+|---|---|---|
+| `rac1.player.update_motion_input` | yes, each tick (`hero_frame_update` calls `hero_update`) | — |
+| `rac1.player.turn_to_heading` | yes: his run (0.035 t / 0.15 / 9.6 t or 0.008 t / 0.15 / 9.95 t), the punch's lock-on (0.05 / 0.2 / 15.01), the glide (0.04 / 0.2 / 8.73), the jump before takeoff (0.015 / 0.2 / 15.01) and after (0.04 / 0.2 / `air_turn_rate`), the fall (0.04 / 0.2), the ledge, the scripted walk (0x65: 0.03 / 0.3 / 7.85) | the turn spring |
+| `rac1.player.approach_speed` | yes: his run (7.5 k, 8.5), idle (0, 12.6), the punch (37, 28), the glide (15, 7), the jump before takeoff (20, 50), the scripted walk | `up`, `down`; the target at `+0x190` |
+| `rac1.player.set_planar_velocity` | yes: his run (`99999`: his facing), the punch (his facing, or the locked heading), the glide, the jump before takeoff | the angle |
+| `rac1.player.advance_animation` | yes, each tick first | — |
+| `rac1.pad.process_report` | yes, each poll | — |
+| `rac1.camera.follow.apply_overrides` | yes: his camera is the follow camera (the overrides set its distance and height by vehicle mode) | the camera |
+
+Until 0.4.0 every hook but the camera's left him alone: `playing()` is false for any vehicle mode, so
+the update, turn, speed and velocity hooks passed his calls through.
+
+### 9.5 The mod
+
+`clank_playing()`: in play (a level, his moby, no scene) in vehicle mode 1 under `clank` `rac2` or
+`enhanced`. Then `update_motion_input` runs his own tick (`clank_update`): Ratchet's paths stay off
+(`s.active` false), the inner hooks see `s.clank`, and nothing of Ratchet's is read or written.
+
+| What | How | rac2 | enhanced |
+|---|---|---|---|
+| The run's turn | `turn_to_heading` in 0x44 / 0x50: rac1's call recognised by its two springs (within 1%; another is passed and traced), rac2's given, each argument × rac2's over rac1's | 0.033 / 0.15 / 9.95; 0.037 / 11.69 in a turnaround | the same |
+| Speeding up, slowing, top speed | `approach_speed` in his run: the target (`+0x190`) × the top speed over 3 for the call and put back after, `up` and `down` the choice's, all by the scale `down` came in with (another mod's) | 18, 20, 3 u/s | 18, 20, **3.13** |
+| Along the stick, the turnaround | `set_planar_velocity` in his run: rac2's flags worked out there, as rac2 does after its turn and speed step (the yaw error after this tick's turn, the flat speed, the stick, its angle 0 and 2 polls back); the move yaw while along. A new run starts clear | under 0.7 u/s | the same |
+| The jump | on 0x49's first tick, before its first physics tick (the pre-step; rac1 enters it in the transitions): `takeoff_frame` (`+0x420`), `apex_anim_frame` (`+0x440`), `target_anim_frame` (`+0x444`), `air_stick_speed` (`+0x424`), each only where rac1 left its own | takeoff 3 (rac2's PAL count at 50 Hz), frames 15 / 24, air 2.0 | the same, air **2.5** |
+| The punch's lock-on turn | `turn_to_heading` in 0x51, recognised as the wrench's | 16.93 | the same |
+| The punch's way out | the post-step, before his transitions: the choice reads the punch's frame `punch_lead` ahead of rac1's for standing (past 10) and jumping out (past 8, X within its window); where it leaves and rac1 would not, rac1 is shown a frame where its own code does the same for the tick (`anim_frame`, put back in `advance_animation`): the first past 8 whose X window takes the press, or 10.5 to stand with X hidden (its window there is longer) | a frame ahead: stands after 22 ticks, jumps out after 18 | the same, and with the stick past **0.8** also leaves **past frame 7** (runs out after 18 ticks) |
+| Square remembered | the post-step: a Square the choice's window takes and rac1's does not is shown to his transitions as pressed this poll (idle and run; the jump's landing, past the apex under 0.2 up), put back before the next poll | rac1's (9, 5) | **13**, **7** |
+
+What it does not touch: the hits, their frames, the lunge, damage (a steered frame is past frame 6, so
+nothing hits early or twice; the hit test runs inside his update, before the steer); heights, gravity,
+the glide and the fall; his windows for X; the Gadgebot commands; the ledge; Giant Clank.
+
+Counts at 50 Hz: rac1's windows by `scale_ticks`, so is the mod's 13 and 7 (rac1's are its own numbers
+grown); rac2's takeoff by rac2's PAL count (`bm_rac2_ticks`). OpenRAC runs PAL at 60 Hz, so only the
+unit and load tests run that path.
+
+### 9.6 Left out
+
+- **Giant Clank** (9.3).
+- **rac2's punch hitting 2 ticks sooner and lunging 0.69 units**: its records are rac1's, its
+  animation runs a frame ahead. The mod ports the way out only, so the hit, its reach and damage stay
+  the first game's.
+- **The fall's and the glide's stick speeds**: the same in both games, and Ratchet's heli hover, their
+  match, is the same in both games too: nothing to grow them from.
+- **rac2's L1-only look**: L2 is rac1's look for Clank as for Ratchet, and his strafe is not in scope.
+- **rac2's landing animation frame** (it starts the landing pose from its landing frame, 12, where
+  rac1's code reads the apex's target, 24 with the mod).
+- **The flick's oddity** is ported as rac2 has it (the ring's oldest entry against 2 back).
