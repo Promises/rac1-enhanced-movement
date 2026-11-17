@@ -1366,7 +1366,8 @@ void turn(Original original, int32_t mode, float accel, float damp, float limit)
     }
 
     // In the air after takeoff (the jump group's air turn, or the fall), strafing, he faces the
-    // camera while still steering along the stick. The flips keep their takeoff yaw, as in rac2.
+    // camera while still steering along the stick. The high jump (the flips), the pack long jump,
+    // the ledge jump (0x1C) and states 0x0C, 0x11 and 0x4C keep the game's own turn.
     if (s.strafing
         && (st == RAC1_STATE_FALL
             || (bm_is_jump_state(st) && st != RAC1_STATE_HIGH_JUMP && st != 0x0C
@@ -1635,7 +1636,7 @@ void load(openrac::Mod& mod) {
     // A disc without a row is refused.
     if (s_disc == nullptr) {
         throw openrac::Error(
-            "rac1-enhanced-movement knows the PAL v2.00 and NTSC-U v1.00 discs, not "
+            "Works only with the PAL v2.00 and NTSC-U v1.00 discs, not "
             + std::string(mod.version())
         );
     }
@@ -1664,7 +1665,7 @@ void load(openrac::Mod& mod) {
 
     // With every part off, and the camera and Clank as the first game has them, no hook is taken.
     if (!movement && !camera_turn) {
-        mod.info("everything off: no hooks taken");
+        mod.info("Every setting is off, so the mod changes nothing.");
         return;
     }
 
@@ -1710,7 +1711,7 @@ void load(openrac::Mod& mod) {
                 approach_speed(original, up, down);
             });
         } catch (const openrac::Error& e) {
-            missing = std::string(" (without Going Commando's speeds: ") + e.what() + ")";
+            missing = std::string(" Speed changes: off (") + e.what() + ").";
         }
     }
 
@@ -1733,29 +1734,29 @@ void load(openrac::Mod& mod) {
 
     // 6. One line in the log says how the game will play.
     const char* buttons = s_set.strafe == (BM_PAD_L2 | BM_PAD_R2) ? "L2 or R2"
-                          : s_set.strafe == BM_PAD_L2             ? "L2"
-                                                                  : "R2";
+                          : s_set.strafe == BM_PAD_L2             ? "L2 only"
+                                                                  : "R2 only";
     mod.info(
-        std::string("on the ") + std::string(mod.version()) + " disc: running "
-        + (s_set.ground ? "Going Commando's" : "the game's") + ", air control "
-        + (s_set.air ? "Going Commando's" : "the game's") + ", strafe "
-        + (strafe ? std::string("on ") + buttons + (s_set.flips ? ", flips" : "")
-                        + (s_set.twist ? ", twist" : "")
-                  : "off")
-        + ", wrench " + (s_set.wrench ? "Going Commando's" : "the game's") + ", camera "
-        + (s_set.camera == BM_CAMERA_RAC2 ? "Going Commando's" : "the game's") + ", Clank "
-        + (s_set.clank == BM_CLANK_ENHANCED ? "enhanced"
-           : s_set.clank == BM_CLANK_RAC2   ? "Going Commando's"
-                                            : "the game's")
-        + (s_set.trace ? ", trace on" : "") + missing
+        std::string("Disc: ") + std::string(mod.version())
+        + ". Running: " + (s_set.ground ? "Going Commando" : "Original")
+        + ". Air control: " + (s_set.air ? "Going Commando" : "Original") + ". Strafe: "
+        + (strafe ? std::string(buttons) + (s_set.flips ? ", flips" : "")
+                        + (s_set.twist ? ", hip twist" : "")
+                  : "Off")
+        + ". Wrench: " + (s_set.wrench ? "Going Commando" : "Original") + ". Camera: "
+        + (s_set.camera == BM_CAMERA_RAC2 ? "Going Commando" : "Original") + ". Clank: "
+        + (s_set.clank == BM_CLANK_ENHANCED ? "Enhanced"
+           : s_set.clank == BM_CLANK_RAC2   ? "Going Commando"
+                                            : "Original")
+        + (s_set.trace ? ". Trace: on" : "") + "." + missing
     );
 
     // A missing speed hook is a warning too.
     if (!missing.empty()) {
         mod.warn(
-            "this OpenRAC has no rac1.player.approach_speed: Ratchet and Clank keep the first "
-            "game's "
-            "speeds (and the slam's drive)"
+            "This OpenRAC is too old for part of the mod: Ratchet and Clank keep their original "
+            "running speeds, and a slam from high up doesn't drive forward. Update OpenRAC to get "
+            "them."
         );
     }
 }

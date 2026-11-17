@@ -20,9 +20,7 @@ void load(openrac::Mod& mod) {
         return;
     }
 
-    throw openrac::Error(
-        "rac1-enhanced-movement is for Ratchet & Clank (rac1), not " + std::string(mod.game())
-    );
+    throw openrac::Error("Works only with Ratchet & Clank (rac1), not " + std::string(mod.game()));
 }
 
 }  // namespace

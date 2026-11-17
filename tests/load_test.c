@@ -554,7 +554,7 @@ static void refusals(void) {
     s_clank = "rac1";
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 0);
-    CHECK_EQ(strstr(g_last_log, "no hooks taken") != NULL, 1);
+    CHECK_EQ(strstr(g_last_log, "changes nothing") != NULL, 1);
 
     // Clank alone, either choice, takes his update, the animation's undo, his run's turn, velocity
     // and speeds, and the pad's undo, but not the camera.
@@ -562,11 +562,11 @@ static void refusals(void) {
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 6);
     CHECK_EQ(g_hooks[CAMERA].replacement == NULL, 1);
-    CHECK_EQ(strstr(g_last_log, "Clank Going Commando's") != NULL, 1);
+    CHECK_EQ(strstr(g_last_log, "Clank: Going Commando") != NULL, 1);
     s_clank = "enhanced";
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 6);
-    CHECK_EQ(strstr(g_last_log, "Clank enhanced") != NULL, 1);
+    CHECK_EQ(strstr(g_last_log, "Clank: Enhanced") != NULL, 1);
 
     // A value the manifest does not list gives the default, enhanced.
     s_clank = "faster";
@@ -602,7 +602,7 @@ static void refusals(void) {
     s_camera = "modern";
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 2);
-    CHECK_EQ(strstr(g_last_log, "camera Going Commando's") != NULL, 1);
+    CHECK_EQ(strstr(g_last_log, "Camera: Going Commando") != NULL, 1);
 }
 
 /* Every hook taken with the defaults, and all but one, with a warning, on a port without
