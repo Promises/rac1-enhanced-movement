@@ -469,7 +469,7 @@ at its default (`clank` `enhanced`), compared tick by tick (`--same`):
 | Orxon's standard route with `clank` `rac1` | 901, 0 differ | 901, 0 differ |
 | Every setting off (`clank` `rac1`) against no mod, Veldin | 901, 0 differ, no hooks taken | 901, 0 differ, no hooks taken |
 
-### Camera choices (0.5.0)
+### Camera choices (1.0.0)
 
 The camera route above (`CAM`, Veldin, the turn to the left at c165 for 44 ticks), with each choice
 on each step of the game's camera speed option (`OPENRAC_WRITE="1:15EDE4:<step>:30000"` on NTSC-U),

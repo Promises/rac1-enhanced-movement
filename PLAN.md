@@ -24,7 +24,7 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | 11. `modern` removed (0.3.1) | Done on your request, released within 0.4.0 (tag `rac1-enhanced-movement-v0.4.0`; no 0.3.1 tag): you play-tested 0.3.0 and found `modern` far too fast, even on the game's slowest camera speed (it is three times the game's: 180 / 234 / 288 degrees a second). The choice, its code (the ×3 gain, the pitch's steps, the eye's springs and their 20-tick window), its addresses, tests and docs are gone; `rac1` and `rac2` are unchanged (section 10). A saved `modern` gives the default `rac2`: the launcher drops it on installing 0.3.1, the port hands the default for it, and `camera_choice()` maps it to `rac2` (the load test feeds it). Play-tested on both discs against the 0.3.0 release (PLAYTEST.md) |
 | 12. Clank (0.4.0) | Done on your request, released as 0.4.0 (tag `rac1-enhanced-movement-v0.4.0`; top speed 3.45, your choice over 3.13): the `clank` setting (`rac1`, `rac2`, `enhanced`, the default; section 11 below, DESIGN.md section 9), `clank.h`, every `enhanced` number in `clank_tune.h`, the `clank` test, the load test on both discs and at 50 Hz, 48 more rows in `rac2_constants.tsv` (Clank's literals and his punch records), the play-test on both rac1 discs and in Going Commando's port, whose Aranos Prison starts as Clank (PLAYTEST.md). `rac1` plays Clank and every Ratchet route tick for tick as 0.3.1. Giant Clank stays the game's (section 11) |
 | 13. Language audit (0.4.1) | Done on your request, released as 0.4.1 (tag `rac1-enhanced-movement-v0.4.1`): plain player text in the README, the manifest and the log messages; code comments in OpenRAC's style, with about 25 wrong ones fixed. The comment changes compile to 0.4.0's machine code, and the standard, wrench, camera and Clank routes play tick for tick as 0.4.0 on NTSC-U and PAL |
-| 14. Camera choices (0.5.0) | Done on your request: `rac2` follows Going Commando's camera table (60 / 78 / 132 degrees a second), and a new `enhanced`, the default, scales every step by 2.2 / 1.3 (102 / 132 / 162). The README no longer mentions the old name rac1-better-movement (the manifest still lists it as a conflict) |
+| 14. Camera choices (1.0.0) | Done on your request, released as 1.0.0 (tag `rac1-enhanced-movement-v1.0.0`): `rac2` follows Going Commando's camera table (60 / 78 / 132 degrees a second), and a new `enhanced`, the default, scales every step by 2.2 / 1.3 (102 / 132 / 162). The README no longer mentions the old name rac1-better-movement (the manifest still lists it as a conflict) |
 
 ## 1. Decisions
 
@@ -40,7 +40,7 @@ Phase 1, and the finished evidence goes to `DESIGN.md`.
 | Multiplayer | `"input"`: it changes how one player's Ratchet moves, not the world or its rules |
 | Wrench (0.3.0) | Part of Ratchet's movement: rac2's timing, windows, way out of a swing and lock-on turn. **Damage and hit windows stay rac1's**, for the same reason as the jump heights: rac1's enemies and bosses are balanced around them. Where unclear, the choice that keeps rac1 as beatable (section 9) |
 | Clank (0.4.0) | One `clank` choice: `rac1` (the game's: the mod stays out of him), `rac2` (Going Commando's Clank where it differs), `enhanced` (past it, the default). Moderate steps, each anchored to Going Commando's own step for Ratchet in the same quantity (section 11). **Jump heights, punch damage, hits and reach stay rac1's**, as for Ratchet; the Gadgebot commands are the game's; Giant Clank is left out |
-| Camera (0.3.0) | One `camera` choice: `rac1` (the game's), `rac2` (Going Commando's own speeds since 0.5.0) and `enhanced` (since 0.5.0, the default: every step × 2.2 / 1.3, 102 / 132 / 162 degrees a second). Turn speed only; the follow camera's other behaviour stays rac1's (section 10). **0.3.1 removes 0.3.0's third choice, `modern`** (three times the game's speed): played, it was far too fast even on the game's slowest step. `rac2` is the fastest choice; a saved `modern` gives `rac2` |
+| Camera (0.3.0) | One `camera` choice: `rac1` (the game's), `rac2` (Going Commando's own speeds since 1.0.0) and `enhanced` (since 1.0.0, the default: every step × 2.2 / 1.3, 102 / 132 / 162 degrees a second). Turn speed only; the follow camera's other behaviour stays rac1's (section 10). **0.3.1 removes 0.3.0's third choice, `modern`** (three times the game's speed): played, it was far too fast even on the game's slowest step. `rac2` is the fastest choice; a saved `modern` gives `rac2` |
 
 What the research found about two of the scope items:
 
@@ -579,7 +579,7 @@ the game's option is on, so the two choices rise one above the other: 78 and 132
 the game's default. Only rac2's fastest number is used; the pitch, the springs and the dead zone are
 the same in both games anyway.
 
-**Decision (the user, 2026-11-16): `rac2` and `enhanced` (0.5.0).** With `rac2` always at 132, the
+**Decision (the user, 2026-11-16): `rac2` and `enhanced` (1.0.0).** With `rac2` always at 132, the
 game's own camera speed option did nothing. The user asked for both a Going Commando choice and an
 enhanced one: `rac2` now follows Going Commando's table (60 / 78 / 132), and `enhanced` scales every
 step by rac2's fastest entry over rac1's middle one (2.2 / 1.3), so the game's default step turns at

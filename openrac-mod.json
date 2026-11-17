@@ -2,7 +2,7 @@
   "format": 2,
   "id": "rac1-enhanced-movement",
   "name": "Enhanced movement (Going Commando)",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "author": "kmomoney",
   "description": "Ratchet moves like he does in Going Commando. His speed follows the stick, he starts and stops quicker, and he doesn't skid when you let go. You also get more control in the air, a strafe on L2 or R2 with side and back flips, the wrench timing from Going Commando, a faster camera and better controls for Clank. Jump heights and damage stay the same, so every level plays as designed.",
   "license": "GPL-3.0-or-later",

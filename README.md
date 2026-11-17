@@ -199,10 +199,11 @@ faster lock-on turn are checked by the automated tests only. Results:
 
 ## Release notes
 
-- **0.5.0:** New **Enhanced** camera choice, now the default: faster on every
-  camera speed, 132 degrees a second on the game's default. **Going Commando**
-  now uses that game's own speeds. If you picked Going Commando before and want
-  the faster camera, pick Enhanced.
+- **1.0.0:** First stable release, after a full playthrough. New **Enhanced**
+  camera choice, now the default: faster on every camera speed, 132 degrees a
+  second on the game's default. **Going Commando** now uses that game's own
+  speeds. If you picked Going Commando before and want the faster camera, pick
+  Enhanced.
 - **0.4.1:** Plainer README, settings and log messages. It plays the same as 0.4.0.
 - **0.4.0:** New **Clank** setting: Going Commando's controls for Clank, or
   **Enhanced** (the default), which goes a little further. Jump heights, punch
