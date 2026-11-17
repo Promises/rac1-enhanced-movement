@@ -186,9 +186,10 @@ only changes how your own character moves.
     little sooner and reaches less far; only its quicker recovery is used.
   - L2 still looks around, as in the first game (Going Commando uses L1 only).
 
-**Testing.** The mod was tested with scripted runs on both discs: Ratchet on
-all 19 levels, Clank on Orxon, and the wrench, the camera and Clank side by
-side with Going Commando itself. The scripted runs don't cover these yet:
+**Testing.** The whole game has been played through from start to finish with
+the mod installed. The mod was also tested with scripted runs on both discs:
+Ratchet on all 19 levels, Clank on Orxon, and the wrench, the camera and Clank
+side by side with Going Commando itself. The scripted runs don't cover these:
 ice, swimming, the hoverboard, Kalebo III's arena, grind rails, the Swingshot,
 the wrench on ice, magnetic surfaces or grind rails, Giant Clank, Blarg's
 Clank section, Orxon past its first enemy, the camera with a real stick or a

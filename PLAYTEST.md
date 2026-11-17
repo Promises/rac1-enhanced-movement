@@ -489,6 +489,10 @@ and 90% after 24:
 - PAL v2.00, `enhanced` on the default step: 131.2, the same ramp and coast.
 - The load line says `Camera: Enhanced` with the defaults.
 
+## By hand
+
+The user played the whole game through, start to finish, with the mod installed.
+
 ## Not covered by script
 
 These need a save that has reached them, or a teleport the route does not do yet:
