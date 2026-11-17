@@ -200,6 +200,7 @@ faster lock-on turn are checked by the automated tests only. Results:
 
 ## Release notes
 
+- **0.4.1:** Plainer README, settings and log messages. It plays the same as 0.4.0.
 - **0.4.0:** New **Clank** setting: Going Commando's controls for Clank, or
   **Enhanced** (the default), which goes a little further. Jump heights, punch
   damage and Giant Clank don't change. Ratchet plays as in 0.3.1.
