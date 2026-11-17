@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # rac1-enhanced-movement (README.md): Going Commando's movement for Ratchet & Clank on OpenRAC's
-# native port. The top of the repository, from the SDK's template (sdk/template), with the tests.
+# native port. The repository's top-level build, from the SDK's template (sdk/template), plus the
+# tests.
 #
 #   python3 tools/fetch_sdk.py                     # the SDK sdk.lock pins, into .sdk/
 #   cmake -S . -B build -G Ninja
@@ -9,8 +10,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(rac1_enhanced_movement LANGUAGES C CXX)
 
-# The SDK: the release sdk.lock pins (tools/fetch_sdk.py puts it in .sdk/); OPENRAC_SDK=<dir> (an
-# unpacked SDK, or sdk/ in a checkout of OpenRAC) or OpenRACMod_DIR=<dir>/cmake for another.
+# The SDK is the release sdk.lock pins, which tools/fetch_sdk.py puts in .sdk/. OPENRAC_SDK=<dir>
+# (an unpacked SDK, or sdk/ in an OpenRAC checkout) or OpenRACMod_DIR=<dir>/cmake picks another.
 if(NOT OpenRACMod_DIR)
   if(DEFINED OPENRAC_SDK)
     set(OpenRACMod_DIR "${OPENRAC_SDK}/cmake")
@@ -43,17 +44,19 @@ endif()
 
 # The tests build only when testing is on (CTest's BUILD_TESTING).
 if(BUILD_TESTING)
-  # The decisions alone (src/rac1/ground.h, air.h, strafe.h, wrench.h, camera.h, clank.h): plain C,
-  # no game, no SDK.
+  # The decision headers alone (src/rac1/ground.h, air.h, strafe.h, wrench.h, camera.h, clank.h),
+  # in plain C with no game and no SDK.
   foreach(name ground air strafe wrench camera clank)
     add_executable(rac1_enhanced_movement_${name}_test tests/${name}_test.c)
     target_include_directories(rac1_enhanced_movement_${name}_test PRIVATE src tests)
-    set_target_properties(rac1_enhanced_movement_${name}_test PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
-    # The decisions compare floats the way the game computes them: no fused multiply-adds.
+    set_target_properties(rac1_enhanced_movement_${name}_test
+                          PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+    # No fused multiply-adds, so the decisions' floats come out as the game computes them.
     if(MSVC)
       target_compile_options(rac1_enhanced_movement_${name}_test PRIVATE /fp:precise)
     else()
-      target_compile_options(rac1_enhanced_movement_${name}_test PRIVATE -Wall -Wextra -ffp-contract=off)
+      target_compile_options(rac1_enhanced_movement_${name}_test
+                             PRIVATE -Wall -Wextra -ffp-contract=off)
     endif()
     # The maths library is separate on Unix.
     if(UNIX)
@@ -62,16 +65,18 @@ if(BUILD_TESTING)
     add_test(NAME rac1_enhanced_movement_${name} COMMAND rac1_enhanced_movement_${name}_test)
   endforeach()
 
-  # The library as the port loads it, against a host table of the test's own.
+  # The library as the port loads it, against a host table the test provides.
   add_executable(rac1_enhanced_movement_load_test tests/load_test.c)
   target_include_directories(rac1_enhanced_movement_load_test PRIVATE src tests)
-  set_target_properties(rac1_enhanced_movement_load_test PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
+  set_target_properties(rac1_enhanced_movement_load_test
+                        PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
   target_link_libraries(rac1_enhanced_movement_load_test PRIVATE OpenRAC::mod ${CMAKE_DL_LIBS})
   add_dependencies(rac1_enhanced_movement_load_test rac1_enhanced_movement)
-  add_test(NAME rac1_enhanced_movement_load COMMAND rac1_enhanced_movement_load_test $<TARGET_FILE:rac1_enhanced_movement>)
+  add_test(NAME rac1_enhanced_movement_load
+           COMMAND rac1_enhanced_movement_load_test $<TARGET_FILE:rac1_enhanced_movement>)
 
-  # rac2.h against the table tools/rac2_constants.py read out of rac2-decomp, and the manifest
-  # against the code: run when Python is found.
+  # rac2.h against the table tools/rac2_constants.py read from rac2-decomp, and the manifest against
+  # the code. Both run only when Python is found.
   find_package(Python3 COMPONENTS Interpreter)
   if(Python3_FOUND)
     add_test(NAME rac1_enhanced_movement_rac2_constants

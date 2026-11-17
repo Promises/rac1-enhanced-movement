@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// The entry point (GUIDE.md section 4): the game that loads the library picks its part. Only
-// Ratchet & Clank (rac1) has one, src/rac1/game.cpp; any other game is refused with a reason.
+// The mod's entry point (GUIDE.md section 4). It hands Ratchet & Clank (rac1) to src/rac1/game.cpp
+// and refuses any other game with a reason.
 #include "openrac/mod.hpp"
 
 #include <string>
@@ -11,9 +11,10 @@
 
 namespace {
 
-// Called once by the port at start, on the game's thread: rac1's part, or a refusal.
+// Loads the part of the mod for the running game, or refuses the game. The port calls it once at
+// start, on the game's thread.
 void load(openrac::Mod& mod) {
-    // Ratchet & Clank: its own addresses, hooks and decisions.
+    // Only rac1 has addresses, hooks and decisions in this mod.
     if (mod.game() == "rac1") {
         enhanced_movement::rac1::load(mod);
         return;

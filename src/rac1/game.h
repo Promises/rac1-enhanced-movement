@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
-// Ratchet & Clank's part of the mod (game.cpp): the disc, the settings, the hooks.
+// The rac1 part of the mod, implemented in game.cpp: it checks the disc, reads the settings and
+// takes the hook points.
 #ifndef RAC1_ENHANCED_MOVEMENT_GAME_H
 #define RAC1_ENHANCED_MOVEMENT_GAME_H
 
@@ -8,7 +9,7 @@
 
 namespace enhanced_movement::rac1 {
 
-// Loads the mod on rac1: refuses a disc it has no addresses for, reads the settings, takes the
+// Loads the mod on rac1: refuses a disc it has no addresses for, reads the settings and takes the
 // hook points. Throws openrac::Error to refuse.
 void load(openrac::Mod& mod);
 
