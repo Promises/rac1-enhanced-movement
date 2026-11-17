@@ -4,7 +4,7 @@
   "name": "Enhanced movement (Going Commando)",
   "version": "0.4.0",
   "author": "kmomoney",
-  "description": "Ratchet moves as in Ratchet & Clank: Going Commando: his speed follows how far the stick is pushed, he gets going and stops quicker and turns as in the second game, with its turnaround and no skid when you let go; more control in the air; Going Commando's strafe on L2 or R2, with its side and back flips and hip twist; Going Commando's wrench timing; a choice of camera turn speed: the first game's or Going Commando's fastest; and Clank's own sections played with Going Commando's Clank or past it. Jump heights and wrench and punch damage stay the first game's, so every level plays as built.",
+  "description": "Ratchet moves like he does in Going Commando. His speed follows the stick, he starts and stops quicker, and he doesn't skid when you let go. You also get more control in the air, a strafe on L2 or R2 with side and back flips, the wrench timing from Going Commando, a faster camera and better controls for Clank. Jump heights and damage stay the same, so every level plays as designed.",
   "license": "GPL-3.0-or-later",
   "homepage": "https://github.com/kmomoney/rac1-enhanced-movement",
   "api": "1.0",
@@ -18,11 +18,11 @@
   "conflicts": [
     {
       "id": "lock-strafe",
-      "reason": "both strafe on L2 and R2 and take the same hook points"
+      "reason": "both strafe on L2 and R2"
     },
     {
       "id": "rac1-better-movement",
-      "reason": "the same mod under its old name: remove it"
+      "reason": "it's this mod under its old name, so remove it"
     }
   ],
   "hooks": [
@@ -40,14 +40,14 @@
       "name": "Going Commando running",
       "type": "bool",
       "default": true,
-      "description": "Speed follows how far the stick is pushed, Ratchet gets going and stops quicker, turns and turns around as in Going Commando, and stops without a skid when you let go."
+      "description": "Speed follows how far you push the stick. Ratchet starts, stops and turns as in Going Commando, and doesn't skid when you let go."
     },
     {
       "key": "air",
       "name": "Going Commando air control",
       "type": "bool",
       "default": true,
-      "description": "More control of Ratchet in the air, as in Going Commando (quicker in jumps, much more in the double jump). Jump heights stay the first game's."
+      "description": "More control in the air, most of all in the double jump. Jump heights stay the same."
     },
     {
       "key": "strafe",
@@ -72,45 +72,45 @@
           "name": "Off"
         }
       ],
-      "description": "Hold it to strafe as in Going Commando: Ratchet faces where the camera looks and the left stick moves him. L1 still looks and R1 still crouches; with one button only, the other stays the game's."
+      "description": "Hold it to strafe: Ratchet faces where the camera looks and moves without turning. L1 still looks, R1 still crouches, and if you pick one button the other works as usual."
     },
     {
       "key": "flips",
       "name": "Strafe flips",
       "type": "bool",
       "default": true,
-      "description": "Strafing, X with the stick pushed fully left, right or back flips that way."
+      "description": "While strafing, X with the stick pushed fully left, right or back flips that way."
     },
     {
       "key": "twist",
       "name": "Hip twist",
       "type": "bool",
       "default": true,
-      "description": "Strafing, Ratchet's hips turn toward where he goes while his upper body keeps facing ahead."
+      "description": "While strafing, Ratchet's hips turn toward where he's going and his upper body keeps facing ahead."
     },
     {
       "key": "wrench",
       "name": "Going Commando wrench",
       "type": "bool",
       "default": true,
-      "description": "The wrench handles as in Going Commando: Square is remembered a little longer, the lock-on turn is quicker, you can run or jump out of a swing sooner and move on while a thrown wrench flies, and the slam keeps its drive from high up. Damage stays the first game's."
+      "description": "The wrench timing from Going Commando: a Square pressed early still counts, and you can run or jump out of swings and throws sooner. Damage stays the same."
     },
     {
       "key": "camera",
-      "name": "Camera rotation",
+      "name": "Camera turn speed",
       "type": "choice",
       "default": "rac2",
       "choices": [
         {
           "value": "rac1",
-          "name": "Ratchet & Clank"
+          "name": "Original"
         },
         {
           "value": "rac2",
           "name": "Going Commando"
         }
       ],
-      "description": "How fast the right stick turns the camera behind Ratchet. Going Commando's is its fastest camera, 132 degrees a second whatever the game's own camera speed (the first game turns 78 by default, 96 at its fastest). First person stays the game's."
+      "description": "How fast the right stick turns the camera. Going Commando always turns it at that game's top speed, faster than any original setting."
     },
     {
       "key": "clank",
@@ -120,7 +120,7 @@
       "choices": [
         {
           "value": "rac1",
-          "name": "Ratchet & Clank"
+          "name": "Original"
         },
         {
           "value": "rac2",
@@ -131,7 +131,7 @@
           "name": "Enhanced"
         }
       ],
-      "description": "How Clank handles when he goes on alone. Going Commando: he gets going and stops quicker, turns and turns around as in the second game, leaves the ground sooner in a jump and turns to a target quicker. Enhanced (the default): Going Commando's Clank, a little faster, with more control in his jump, Square remembered longer and a quicker way out of a punch. Jump heights and punch damage stay the first game's; Giant Clank stays the game's."
+      "description": "How Clank handles on his own. Going Commando makes him quicker to start, stop, turn and recover from a punch, and Enhanced also makes him a bit faster with more air control."
     },
     {
       "key": "trace",
@@ -139,7 +139,7 @@
       "name": "Trace",
       "type": "bool",
       "default": false,
-      "description": "For bug reports: a line in the game's log each tick with what the mod decided and every input it used."
+      "description": "For bug reports: writes what the mod does to the game's log, every frame."
     }
   ]
 }
