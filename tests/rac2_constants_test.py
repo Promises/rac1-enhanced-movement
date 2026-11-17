@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""rac2.h against tests/data/rac2_constants.tsv: every RAC2_ literal is rac2-decomp's, as written.
+"""Check the RAC2_ literals of src/rac1/rac2.h against tests/data/rac2_constants.tsv.
 
     python3 tests/rac2_constants_test.py
 
-tools/rac2_constants.py reads the table out of rac2-decomp (each row has its file and line). This
-check needs neither the decompilation nor the disc: it compares the committed table with rac2.h, so
-a literal mistyped in rac2.h, or one added there without a row, fails. Every row must be used.
+tools/rac2_constants.py reads the table out of rac2-decomp, with each row's file and line. This
+check needs neither the decompilation nor the disc: it compares the committed table with rac2.h,
+so a literal mistyped in rac2.h, or one added there without a row, fails. Every row must be used.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ TABLE = ROOT / "tests" / "data" / "rac2_constants.tsv"
 
 
 def main() -> int:
+    """Compare rac2.h's literals with the table's rows and print the result."""
     # A float literal, or a count (decimal or hexadecimal).
     defined = dict(re.findall(r"^#define RAC2_(\w+) (-?[0-9.]+f|0x[0-9A-Fa-f]+|[0-9]+)\s*$", HEADER.read_text(), re.M))
     table = {}

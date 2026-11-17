@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""The standard play-test route (tools/playtest.sh), segment by segment: one run against another.
+"""Compare play-test runs of the standard route (tools/playtest.sh), segment by segment.
 
     python3 tools/playtest_analyze.py BASE.jsonl MOD.jsonl
     python3 tools/playtest_analyze.py --states RUN.jsonl
@@ -9,30 +9,33 @@
     python3 tools/playtest_analyze.py --same A.jsonl B.jsonl
     python3 tools/playtest_analyze.py --clank RUN.jsonl
 
-For each segment of the route (frames from control), each run's states in order (id x ticks), its top
-speed and how soon it reached 90% of it, the distance covered, how far the facing is from the
-camera's yaw on average, and how far the movement is from the facing (strafing: about pi/2 sideways,
-pi back). Speeds come from the position the port's trace (OPENRAC_TRACE) gives each tick.
+For each segment of the route (frames from control) it prints each run's states in order (id x
+ticks), its top speed and how soon it reached 90% of it, the distance covered, the mean angle
+between the facing and the camera's yaw, and the mean angle between the movement and the facing
+(about pi/2 when strafing sideways, pi when strafing back). Speeds come from the positions the
+port's trace (OPENRAC_TRACE) gives each tick.
 
---states lists one run's states in order with the frame from control each began on, its ticks, the
-distance covered and the height gained: the wrench routes (PLAYTEST.md), on either game's port (rac2's
-trace has the same lines). --swings reads the mod's own trace (OPENRAC_ENHANCED_MOVEMENT_TRACE=1, in
-the run's log) and lists each swing of the wrench (states 0x13 to 0x15, a new one at each new attack
-record or restart of the animation): its ticks, record, last frame, and the steers the mod made.
+--states lists one run's states in order, each with the frame from control it began on, its ticks,
+the distance covered and the height gained. It serves the wrench routes (PLAYTEST.md) on either
+game's port, since rac2's trace has the same lines. --swings reads the mod's own trace
+(OPENRAC_ENHANCED_MOVEMENT_TRACE=1, in the run's log) and lists each wrench swing (states 0x13 to
+0x15; a new one starts at each new attack record or restart of the animation) with its ticks,
+record, last frame and the steers the mod made.
 
---camera measures the camera's turn (from the trace's forward row) through each press of the right
-stick (START frames from control, held HOLD): the yaw's rate held (the mean of the hold's last third),
-the ticks to half and 90% of it, the degrees coasted after letting go and the ticks to stop (under 1%
-of the rate); and the pitch's swing, its fastest change and where it is 40 ticks after letting go.
---same counts the ticks from control where two runs differ in position, rotation, state or camera.
---clank measures Clank's route (PLAYTEST.md, Clank) from either game's trace (rac2's states read as
-rac1's): the run's top speed, its 90% and its stop, half stick, the turnaround and a 90-degree turn,
-the jump's takeoff, apex and air stick, the running jump, the glide, and the punches' ticks and ways
-out.
+--camera measures the camera's turn, from the trace's forward row, through each press of the right
+stick (START frames from control, held for HOLD): the yaw rate held (the mean of the hold's last
+third), the ticks to half and 90% of it, the degrees coasted after letting go and the ticks to stop
+(under 1% of the rate), and the pitch's swing, its fastest change and its angle 40 ticks after
+letting go. --same counts the ticks from control where two runs differ in position, rotation, state
+or camera. --clank measures Clank's route (PLAYTEST.md, Clank) from either game's trace, reading
+rac2's states as rac1's: the run's top speed, its 90% and its stop, half stick, the turnaround and
+a 90-degree turn, the jump's takeoff, apex and air stick, the running jump, the glide, and the
+punches' ticks and ways out.
 """
 import json, math, re, sys
 
 def load(path):
+    """Return a trace's rows by their frame from control (the "c" field)."""
     rows = {}
     for line in open(path):
         r = json.loads(line)
@@ -41,6 +44,7 @@ def load(path):
     return rows
 
 def seg(rows, a, b):
+    """Return frames a to b as (frame, state, speed, facing, camera yaw, move direction or None)."""
     out = []
     for c in range(a, b):
         r, p = rows.get(c), rows.get(c - 1)
@@ -54,9 +58,11 @@ def seg(rows, a, b):
     return out
 
 def wrap(a):
+    """Return an angle wrapped to [-pi, pi)."""
     return (a + math.pi) % (2 * math.pi) - math.pi
 
 def summary(name, s):
+    """Print one run's states, top speed, distance and mean angles over a segment."""
     states = []
     for _, st, *_ in s:
         if not states or states[-1][0] != st:
@@ -74,6 +80,7 @@ def summary(name, s):
           f"{(sum(side)/len(side)) if side else 0:4.2f} rad")
 
 def states(path):
+    """Print a run's states in order with their start frame, ticks, distance and height gained."""
     rows = load(path)
     seq = []
     for c in sorted(rows):
@@ -86,9 +93,11 @@ def states(path):
         print(f"c{c:5} state {st:#5x} x{n:4}  moved {math.dist(a[:2], b[:2]):6.3f}  dz {b[2] - a[2]:+.3f}")
 
 def swings(path):
+    """Print each wrench swing in a run's log with its ticks, record, last frame and steers."""
     line = re.compile(r"state (0x[0-9a-f]+|0) .* anim ([-0-9.]+) rec (-?\d+) .*?square -?\d+ cross -?\d+(.*)$")
     cur = None
     def show(s):
+        """Print one swing: state, record, ticks, last frame and steers."""
         print(f"state {s[0]:#x} rec {s[1]} ticks {s[2]:3} last frame {s[3]:6.2f} {' '.join(sorted(s[4]))}")
     for text in open(path, errors="replace"):
         m = line.search(text)
@@ -111,6 +120,7 @@ def swings(path):
         show(cur)
 
 def camera(path, presses):
+    """Print how the camera's yaw and pitch answer each right-stick press (start, hold)."""
     rows = load(path)
     yaw = lambda c: math.atan2(rows[c]["fw"][1], rows[c]["fw"][0])
     pitch = lambda c: math.degrees(math.asin(max(-1.0, min(1.0, rows[c]["fw"][2]))))
@@ -139,16 +149,17 @@ def camera(path, presses):
               f"{fastest:5.1f} deg/s, {after:5.1f} 40 ticks after")
 
 def same(a_path, b_path):
+    """Print how many ticks from control differ between two runs, and the first."""
     a, b = load(a_path), load(b_path)
     both = sorted(set(a) & set(b))
     differ = [c for c in both if any(a[c].get(f) != b[c].get(f) for f in ("hp", "hr", "hs", "cam", "fw"))]
     print(f"{len(both)} ticks, {len(differ)} differ" + (f", the first at c{differ[0]}" if differ else ""))
 
-# Clank's states in rac2's numbers, as rac1 numbers them (DESIGN.md section 9).
+# Clank's states, from rac2's numbers to rac1's (DESIGN.md section 9).
 CLANK_RAC2 = {0x3F: 0x43, 0x40: 0x44, 0x41: 0x45, 0x45: 0x49, 0x48: 0x4C, 0x4B: 0x4F, 0x4D: 0x51}
 
 def clank(path):
-    """Clank's route (PLAYTEST.md, the Clank section), either game's trace: each measure on one line."""
+    """Print the measures of Clank's route (PLAYTEST.md, Clank) from either game's trace, one a line."""
     rows = load(path)
     st = lambda c: CLANK_RAC2.get(rows[c]["hs"], rows[c]["hs"]) if c in rows else None
     pos = lambda c: rows[c]["hp"]
@@ -161,17 +172,17 @@ def clank(path):
 
     # The run at full stick from c30, let go at c90.
     run = [speed(c) for c in range(31, 91)]
-    top = sorted(run[30:])[15]  # the median of the run's last half: a nudge off a wall is no speed
+    top = sorted(run[30:])[15]  # median of the last half, so a nudge off a wall does not count
     t90 = next(k + 1 for k, v in enumerate(run) if v >= 0.9 * top)
     stop = next((c - 90 for c in range(91, 130) if speed(c) < 0.05), None)
     slid = math.dist(pos(90)[:2], pos(90 + (stop or 39))[:2])
     out.append(f"run: top {top:.2f} u/s, 90% after {t90} ticks; let go: stopped after {stop} ticks, slid {slid:.3f}")
 
-    # Half stick from c130.
+    # Half stick from c130, measured once it has settled.
     half = [speed(c) for c in range(170, 191)]
     out.append(f"half stick: {sum(half) / len(half):.2f} u/s")
 
-    # The turnaround at c270 (from c230): the new way is back along the run's.
+    # The turnaround at c270, running from c230: the new way is back along the run.
     back = heading(268) + math.pi
     along = next((c - 270 for c in range(271, 311) if speed(c) > 0.3 and deg(heading(c) - back) < 45), None)
     face = next((c - 270 for c in range(271, 311) if deg(facing(c) - back) < 10), None)
@@ -184,7 +195,7 @@ def clank(path):
     face90 = next((c - 380 for c in range(381, 420) if deg(facing(c) - final) < 10), None)
     out.append(f"turn: {turned:.0f} degrees, within 10 of it after {face90} ticks")
 
-    # The standing jump at c460, the stick right in the air from c468.
+    # The standing jump at c460, with the stick pushed right in the air from c468.
     z0 = pos(459)[2]
     up = next((c - 460 for c in range(460, 520) if pos(c)[2] > z0 + 0.01), None)
     apex = max(pos(c)[2] for c in range(460, 520)) - z0
@@ -194,7 +205,7 @@ def clank(path):
     out.append(f"jump: off the ground {up} ticks after X, apex {apex:.3f}, landed after {None if land is None else land - 460} ticks; "
                f"air stick: {max(air) if air else 0:.2f} u/s, 90% after {reach} ticks")
 
-    # The running jump at c540, the stick held left.
+    # The running jump at c540, with the stick held left.
     zr = pos(539)[2]
     off = next((c for c in range(540, 600) if pos(c)[2] > zr + 0.01), None)
     down = next((c for c in range((off or 540) + 3, 610) if pos(c)[2] <= zr + 0.01), None)
@@ -208,8 +219,9 @@ def clank(path):
         fall = (pos(glide[0])[2] - pos(glide[-1])[2]) * 60 / max(len(glide) - 1, 1)
         out.append(f"glide: {len(glide)} ticks, falling {fall:.2f} u/s")
 
-    # The punches from c720, c820 (the stick pushed) and c880 (X after).
+    # The punches at c720, c820 (with the stick pushed) and c880 (followed by X).
     def spans(a, b):
+        """Return frames a to b as runs of [state, first frame, ticks]."""
         seq = []
         for c in range(a, b):
             s = st(c)
@@ -227,8 +239,8 @@ def clank(path):
     jumped = next((c for s, c, _ in r if s == 0x49), None)
     out.append(f"Square then X: jumping after {None if jumped is None else jumped - 880} ticks")
 
-    # Square remembered: a second Square 11 polls into a punch (c980, c991); one 6 polls before the
-    # jump from c1040 nears the ground (c1070).
+    # Square remembered: a second Square 11 polls into a punch (c980, c991), and one 6 polls before
+    # the jump from c1040 nears the ground (c1070).
     if 1100 in rows:
         m = spans(980, 1040)
         out.append("Square at c980 and c991: " + " ".join(f"{s:#x}x{n}" for s, _, n in m))
@@ -236,6 +248,7 @@ def clank(path):
         out.append(f"Square at c1070 in the jump: {'punched on landing at c' + str(landed[0]) if landed else 'no punch'}")
     print("\n".join(out))
 
+# The mode flag picks a measure; with none, compare two runs segment by segment.
 if sys.argv[1] == "--clank":
     clank(sys.argv[2])
     sys.exit(0)

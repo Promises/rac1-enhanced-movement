@@ -1,31 +1,30 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Going Commando's movement numbers, read out of rac2-decomp, into tests/data/rac2_constants.tsv.
+"""Read Going Commando's movement numbers out of rac2-decomp into tests/data/rac2_constants.tsv.
 
     python3 tools/rac2_constants.py [--decomp ../rac2-decomp] [--lit <level 0's lit.bin>]
                                     [--data <level 0's data.bin>]
 
-Each constant src/rac1/rac2.h uses is a literal of rac2-decomp's C (USA v1.01, level 0's shared hero
-code), found here by a pattern in its file: a float, or a count of ticks or polls (an integer). The
-table records the literal as written and where it is, and tests/rac2_constants_test.py checks rac2.h
-against it, so a typo in rac2.h fails the build's tests.
+Each constant src/rac1/rac2.h uses is a literal in rac2-decomp's C (USA v1.01, level 0's shared
+hero code), found by a pattern in its file: a float, or an integer count of ticks or polls. The
+table records each literal as written and where it is, and tests/rac2_constants_test.py checks
+rac2.h against it, so a typo in rac2.h fails the tests.
 
 Three kinds of number are level data, not literals:
-- the run speed (D_001A7DB0[4], read by func_L00_002B3D10): with --lit (a level 0 lit.bin from
-  rac2-decomp's `tools/levels.py dump`, whose section starts at 0x1A7C80) it is read from there;
-- the follow camera's (its speed table D_L00_001B15B8, read by func_L00_004263B8; the pitch steps
-  func_L00_00425118 reads, the eye's springs func_L00_00425CD0 reads): with --lit too, at the v2.00
-  disc's addresses (func_L00_004263B8's `addiu $a1, $gp, 0x2568` with $gp 0x1AEFF0, and the other
-  two's $gp loads), 0x60 below v1.01's;
-- the attack records (D_L00_0025D990, 0x2C bytes each, read by func_L00_002C9448 and
-  func_L00_002CB3A8): with --data (that dump's level 0 data.bin, whose manifest.json beside it
-  gives the section's address) the frames of records 0 to 3 (the wrench's) and 7 and 8 (Clank's
-  punches) are read from there. The dumps this was
-  run on are of the v2.00 disc (`--version us2`), where the table is at 0x25D910
-  (func_L00_002C9448's lui/addiu at 0x2C9A5C/0x2C9A68), 0x80 below v1.01's.
-Without them, the rows the table already has are kept.
+- The run speed (D_001A7DB0[4], read by func_L00_002B3D10), read with --lit from a level 0 lit.bin
+  that rac2-decomp's `tools/levels.py dump` writes (its section starts at 0x1A7C80).
+- The follow camera's numbers (the speed table D_L00_001B15B8 that func_L00_004263B8 reads, the
+  pitch steps func_L00_00425118 reads and the eye's springs func_L00_00425CD0 reads), also read
+  with --lit. They are at the v2.00 disc's addresses, 0x60 below v1.01's (func_L00_004263B8's
+  `addiu $a1, $gp, 0x2568` with $gp 0x1AEFF0, and the other two's $gp loads).
+- The attack records (D_L00_0025D990, 0x2C bytes each, read by func_L00_002C9448 and
+  func_L00_002CB3A8), read with --data from the same dump's level 0 data.bin, whose manifest.json
+  gives the section's address: the frames of records 0 to 3 (the wrench's) and 7 and 8 (Clank's
+  punches). The dumps used are of the v2.00 disc (`--version us2`), where the table is at
+  0x25D910 (func_L00_002C9448's lui/addiu at 0x2C9A5C/0x2C9A68), 0x80 below v1.01's.
+Without --lit or --data, the rows already in the table are kept.
 
-Numbers only: nothing of the game's own bytes goes into the table but the numbers it names.
+Only the numbers go into the table, never the game's own bytes.
 """
 from __future__ import annotations
 
@@ -56,12 +55,12 @@ WRENCH = SHARED + "L00_002C9448-g8.c"
 F = r"(-?[0-9]+\.[0-9]+f?)"
 # A count: decimal, or hexadecimal as m2c writes some.
 I = r"(0x[0-9A-Fa-f]+|[0-9]+)"
-# |yaw error| as func_L00_002BA7D8 writes it.
+# The absolute yaw error, as func_L00_002BA7D8 writes it.
 ERR = r"func_00282C48\(\(\(Hero \*\)D_00189E20\)->f\[0x1A8/4\]\)"
 
-# name, file, pattern with one group: the literal. The first match counts.
+# Each spec is a name, a file and a pattern whose one group is the literal. The first match counts.
 SPECS: list[tuple[str, str, str]] = [
-    # The run (func_L00_002BA7D8, case 2 and 0x70) and its target speed (func_L00_002B3D10).
+    # The run (func_L00_002BA7D8 cases 2 and 0x70) and its target speed (func_L00_002B3D10).
     ("WADING_SCALE", TARGET, r"\* " + F + r";\s*if \(H->f\[0x1B0 / 4\] < "),
     ("WADING_MIN", TARGET, r"if \(H->f\[0x1B0 / 4\] < " + F),
     ("STICK_RELEASE", STATE_MACHINE, r"f\[0x24B8/4\] < " + F + r"\) \{\s*if \(\(\(Hero \*\)D_00189E20\)->i\[0x410/4\]"),
@@ -89,7 +88,7 @@ SPECS: list[tuple[str, str, str]] = [
     ("STOP_BRAKE", STATE_MACHINE, r"var_f20 = var_f12 \* " + F),
     ("CROUCH_BRAKE", STATE_MACHINE, r"\} else if \(temp_v1_3 == 4\) \{\s*var_f20 = " + F),
     ("CROUCH_ICE_BRAKE", STATE_MACHINE, r"b\[0x1492\] != 0\) \{\s*var_f20 = " + F),
-    # The walk band's, the turnaround's and the firing turn (func_L00_002B3F68).
+    # The walk band's, the turnaround's and the firing turn springs (func_L00_002B3F68).
     ("WALK_TURN_ACCEL_MAX", RUN_TURN, r"if \(speed == 1\.0f\) \{\s*first = " + F),
     ("WALK_TURN_ACCEL_PER_STICK", RUN_TURN, r"first = speed \* " + F),
     ("WALK_TURN_ACCEL_MIN", RUN_TURN, r"if \(first < " + F),
@@ -106,7 +105,7 @@ SPECS: list[tuple[str, str, str]] = [
     ("FIRING_ACCEL_PER_STICK", RUN_TURN, r"third = [0-9.]+f;\s*\} else \{\s*first = speed \* " + F),
     ("FIRING_DAMP_SLOW", RUN_TURN, r"\} else \{\s*first = speed \* [0-9.]+f;\s*second = " + F),
     ("FIRING_LIMIT_PER_STICK", RUN_TURN, r"\} else \{\s*first = speed \* [0-9.]+f;\s*second = [0-9.]+f;\s*third = speed \* " + F),
-    # Leaving the run and the jump X gives (func_L00_002CB3A8, case 2).
+    # Leaving the run, and the jump X gives (func_L00_002CB3A8 case 2).
     ("EXIT_STICK", DECIDER, r"if \(\(\(FLD\(D_00189E20, f32, 0x24B8\) < " + F + r"\) \|\| \(FLD\(D_00189E20, s16, 0x1E0\)"),
     ("EXIT_TURNED", DECIDER, r"turned = func_L00_002B3268\(" + F + r"\);\s*st = "),
     ("EXIT_CLAMP", DECIDER, r"func_002AC9F8\(D_00189E20 \+ 0x160, " + F),
@@ -115,7 +114,8 @@ SPECS: list[tuple[str, str, str]] = [
     ("AIR_STICK_SPEED", ENTRY, r"c4A4 = " + F),
     ("DOUBLE_JUMP_AIR_SPEED", ENTRY, r"HALF\(0x518\) = 14; REAL\(0x514\) = 1\.0f; REAL\(0x4A4\) = " + F),
     ("FLIP_DRIFT_START", ENTRY, r"BYTE\(0x52D\) = 1; REAL\(0x4DC\) = " + F),
-    # The strafe: held, facing, sides (func_L00_002B35A0), sectors (func_L00_002B39F0).
+    # The strafe: its turn and sides (func_L00_002B35A0), sectors and backpedal (func_L00_002B39F0),
+    # standing start (func_L00_002CB3A8) and flip (func_L00_002C9FC8, func_L00_002B6BC8).
     ("STRAFE_TURN_ACCEL", STRAFE, r"func_L00_002B3EF8\(0," + F),
     ("STRAFE_TURN_DAMP", STRAFE, r"func_L00_002B3EF8\(0,[0-9.]+f," + F),
     ("STRAFE_TURN_LIMIT", STRAFE, r"func_L00_002B3EF8\(0,[0-9.]+f,[0-9.]+f," + F),
@@ -128,15 +128,15 @@ SPECS: list[tuple[str, str, str]] = [
     ("FLIP_DRIFT_PER_STICK", AIR, r"float drift = HOP_PLAYER\.stick_magnitude \* " + F),
     ("FLIP_DRIFT_MIN", AIR, r"if \(drift < " + F),
     ("FLIP_DRIFT_STEP", AIR, r"func_002AA2E8\(&HOP_PLAYER\.high_jump_drift_speed, drift, " + F),
-    # The twist (func_L00_002B7B80).
+    # The hip twist (func_L00_002B7B80).
     ("TWIST_STICK", POSE, r"f\[0x24B8 / 4\] > " + F + r" && \(\(Hero \*\)D_00189E20\)->i\[0x2294 / 4\] != 11"),
     ("TWIST_HIP_DAMP", POSE, r"->f\[0xA8 / 4\] = " + F),
     ("TWIST_HIP_ACCEL", POSE, r"->f\[0xA4 / 4\] = " + F),
     ("TWIST_BODY_ACCEL", POSE, r"->f\[0x154 / 4\] = " + F),
     ("TWIST_BODY_DAMP", POSE, r"->f\[0x158 / 4\] = " + F),
     ("STRAFE_SIDE_TICKS", STRAFE, r"\*\(short \*\)\(p\+0x146e\)=" + I + r";"),
-    # The wrench: the lock-on turn of the swings (case 0x13) and the throw's (0x15), the slam's drive
-    # (0x14) (func_L00_002BA7D8).
+    # The wrench (func_L00_002BA7D8): the lock-on turn of the swings (case 0x13) and the throw's
+    # (0x15), and the slam's drive (0x14).
     ("WRENCH_TURN_ACCEL", STATE_MACHINE, r"func_L00_002B3EF8\(0, " + F + r", 0\.2f, 0\.2821616f\);\s*\} else \{\s*var_v1_3 = 1;"),
     ("WRENCH_TURN_DAMP", STATE_MACHINE, r"func_L00_002B3EF8\(0, 0\.05f, " + F + r", 0\.2821616f\);\s*\} else \{\s*var_v1_3 = 1;"),
     ("WRENCH_TURN_LIMIT", STATE_MACHINE, r"func_L00_002B3EF8\(0, 0\.05f, 0\.2f, " + F + r"\);\s*\} else \{\s*var_v1_3 = 1;"),
@@ -144,21 +144,20 @@ SPECS: list[tuple[str, str, str]] = [
     ("SLAM_DRIVE_HEIGHT", STATE_MACHINE, r"f\[0x31C/4\] > " + F + r"\)\) \{\s*var_s1_2 = 1;"),
     ("SLAM_DRIVE_TICKS", STATE_MACHINE, r"\(var_s1_2 != 0\) && \(\(\(Hero \*\)D_00189E20\)->i\[0x1B8/4\] < " + I + r"\)"),
     ("SLAM_DRIVE", STATE_MACHINE, r"i\[0x1B8/4\] < 0x46\)\) \{\s*\(\(Hero \*\)D_00189E20\)->f\[0x1B0/4\] = " + F),
-    # Leaving a swing and the throw (func_L00_002CB3A8, cases 0x13 and 0x15).
+    # Leaving a swing and the throw (func_L00_002CB3A8 cases 0x13 and 0x15).
     ("THROW_RUN_FRAME", DECIDER, r"if \(\(FLD\(D_00189E20, f32, 0xC38\) > " + F + r"\) && \(FLD\(D_00189E20, f32, 0x24B8\) > [0-9.]+f\)\) \{\s*func_L00_002C42E0\(2, 0\);"),
     ("THROW_RUN_STICK", DECIDER, r"0xC38\) > [0-9.]+f\) && \(FLD\(D_00189E20, f32, 0x24B8\) > " + F + r"\)\) \{\s*func_L00_002C42E0\(2, 0\);"),
     ("RUN_OUT_STICK", DECIDER, r"if \(\(f32\)lim < h\) \{\s*if \(FLD\(D_00189E20, f32, 0x24B8\) > " + F),
     ("EXIT_IDLE_FRAMES", DECIDER, r"if \(\(f32\)\(lim \+ " + I + r"\) < h\)"),
     ("THROW_JUMP_WINDOW", DECIDER, r"if \(st == 0x15\) \{\s*frames = " + I + r";"),
-    # Square's windows (func_L00_002C9448): standing or running, and in a jump.
+    # Square's windows (func_L00_002C9448): standing or running, in a jump, and in a swing.
     ("WRENCH_WINDOW", WRENCH, r"func_L00_0032EF10\(mask, " + I + r", &scratch\.input_age\)"),
     ("WRENCH_AIR_WINDOW", WRENCH, r"buffered_window = " + I + r";\s*if \(D_00189E20\.mode == 11"),
     ("WRENCH_AIR_LATE_WINDOW", WRENCH, r"D_00189E20\.mode == 14\)\s*buffered_window = " + I + r";"),
     ("CHAIN_WINDOW", WRENCH, r"action = action < 16 \? action : " + I + r";"),
     ("THROW_AGAIN_TICKS", WRENCH, r"D_00189E20\.mode == 21 && D_00189E20\.frame >= " + I + r"\)"),
     # Clank (DESIGN.md section 9): his run (func_L00_002BA7D8 cases 0x40 and 0x4C, rac1's 0x44 and
-    # 0x50), his idle (0x3F, rac1's 0x43), his punch (0x4D, rac1's 0x51), his glide (0x4B, rac1's
-    # 0x4F).
+    # 0x50), idle (0x3F, rac1's 0x43), punch (0x4D, rac1's 0x51) and glide (0x4B, rac1's 0x4F).
     ("CLANK_RUN_SPEED", STATE_MACHINE, r"case 0x4C:\s+/\* switch 1 \*/\s+func_L00_002B39F0\(" + F),
     ("CLANK_TURN_LIMIT", STATE_MACHINE, r"var_f14 = " + F + r";\s*var_f12_21 = 0\.033f;"),
     ("CLANK_TURN_ACCEL", STATE_MACHINE, r"var_f14 = 0\.16580631f;\s*var_f12_21 = " + F),
@@ -183,7 +182,7 @@ SPECS: list[tuple[str, str, str]] = [
     ("CLANK_PUNCH_BRAKE", STATE_MACHINE, r"func_L00_002B75A0\(5\.0f, 0\.78539824f, 0\.78539824f\);\s*\}\s*func_L00_002B41B8\([0-9.]+f, " + F),
     ("CLANK_GLIDE_SPEED", STATE_MACHINE, r"case 0x4B:\s+/\* switch 1 \*/\s+func_L00_002B39F0\(" + F),
     ("CLANK_GLIDE_TURN_LIMIT", STATE_MACHINE, r"func_L00_002B3EF8\(0, 0\.04f, 0\.2f, " + F + r"\);\s*func_L00_002B41B8\(0\.004166667f"),
-    # His jump's entry (func_L00_002C42E0, state 0x45, rac1's 0x49).
+    # His jump's entry values (func_L00_002C42E0 state 0x45, rac1's 0x49).
     ("CLANK_JUMP_HEIGHT", ENTRY, r"WORD\(0x2294\) == 0x45\) \{\s*REAL\(0x4A8\) = " + F),
     ("CLANK_TAKEOFF", ENTRY, r"WORD\(0x2294\) == 0x45\) \{\s*REAL\(0x4A8\) = [0-9.]+f; SHORT\(0x4AC\) = " + I + r";"),
     ("CLANK_APEX_FRAME", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x4C8\) = " + F),
@@ -191,24 +190,25 @@ SPECS: list[tuple[str, str, str]] = [
     ("CLANK_JUMP_HEIGHT_HELD", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x50C\) = " + F),
     ("CLANK_JUMP_GRAVITY", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x520\) = " + F),
     ("CLANK_AIR_STICK_SPEED", ENTRY, r"WORD\(0x2294\) == 0x45\) \{[^}]*?REAL\(0x4A4\) = " + F),
-    # His windows (func_L00_002CB3A8, cases 0x3F and 0x45): X and Square standing or running, Square
-    # landing.
+    # His windows (func_L00_002CB3A8 cases 0x3F and 0x45): X and Square standing or running, and
+    # Square landing.
     ("CLANK_JUMP_WINDOW", DECIDER, r"func_L00_0032EF10\(0x40, " + I + r", NULL\) != 0\) \{\s*func_L00_002C42E0\(0x45, 1\);\s*break;\s*\}\s*if \(func_L00_0032EF10\(0x80, 9"),
     ("CLANK_SQUARE_WINDOW", DECIDER, r"func_L00_0032EF10\(0x80, " + I + r", NULL\) != 0\) \{\s*func_L00_002C42E0\(0x4D, 1\);\s*break;\s*\}\s*func_L00_002B39F0\(0, 1\.0f\);"),
     ("CLANK_LAND_SQUARE_WINDOW", DECIDER, r"0x31C\) < 0\.2f\) && \(func_L00_0032EF10\(0x80, " + I + r", NULL\)"),
 ]
 
-# The attack records' frames (level 0 data): name, record, byte offset in the 0x2C-byte record.
+# The attack records' frames (level 0 data): name, record and byte offset in the 0x2C-byte record.
 RECORDS = [(f"REC{r}_{name}", r, off) for r in range(4)
            for name, off in (("FIRST", 0xC), ("OPEN", 0x10), ("JUMP", 0x14), ("EXIT", 0x18))]
-# Clank's punches, records 7 and 8 (func_L00_002C42E0's case 0x4D takes 7 + the chain), with the frame
-# under which the next punch chains (+0x8) and the hit window (+0x1C to +0x20).
+# Clank's punches, records 7 and 8 (func_L00_002C42E0's case 0x4D takes 7 + the chain), also with
+# the frame under which the next punch chains (+0x8) and the hit window (+0x1C to +0x20).
 RECORDS += [(f"REC{r}_{name}", r, off) for r in (7, 8)
             for name, off in (("CHAIN", 0x8), ("FIRST", 0xC), ("OPEN", 0x10), ("JUMP", 0x14), ("EXIT", 0x18),
                               ("HIT_FROM", 0x1C), ("HIT_TO", 0x20))]
-RECORD_TABLE = 0x25D910  # D_L00_0025D990 on v1.01, 0x80 lower on v2.00 (the dumps')
+RECORD_TABLE = 0x25D910  # D_L00_0025D990 on v1.01, 0x80 lower on v2.00, which the dumps are of
 
-# The follow camera's numbers (level 0's lit): name, v2.00 address, the v1.01 name rac2-decomp gives.
+# The follow camera's numbers (level 0's lit): name, v2.00 address and the v1.01 name rac2-decomp
+# gives.
 CAMERA = [
     ("CAMERA_SPEED_SLOW", 0x1B1558, "D_L00_001B15B8[0]"),
     ("CAMERA_SPEED_MEDIUM", 0x1B155C, "D_L00_001B15B8[1]"),
@@ -225,7 +225,7 @@ LIT_BASE = 0x1A7C80
 
 
 def extract(decomp: Path) -> list[tuple[str, str, str]]:
-    """Each spec's literal and where it is, or an error naming the specs that matched nothing."""
+    """Return each spec's literal and where it is; exit naming any spec that matched nothing."""
     rows, missing = [], []
     cache: dict[str, str] = {}
 
@@ -247,7 +247,7 @@ def extract(decomp: Path) -> list[tuple[str, str, str]]:
 
 
 def run_speed(lit: Path | None) -> tuple[str, str, str]:
-    """D_001A7DB0[4] from a level 0 lit.bin (section at 0x1A7C80), or the table's row."""
+    """Return the run speed, D_001A7DB0[4] from a level 0 lit.bin, or else the table's row."""
     if lit is not None:
         value = struct.unpack_from("<f", lit.read_bytes(), 0x1A7DC0 - 0x1A7C80)[0]
         return ("RUN_SPEED", f"{value:.6g}f", "level 0 data D_001A7DB0[4] (0x1A7DC0)")
@@ -261,7 +261,7 @@ def run_speed(lit: Path | None) -> tuple[str, str, str]:
 
 
 def shortest(value: float) -> str:
-    """A float32 as the shortest literal that reads back as the same float32, with its f."""
+    """Return a float32 as the shortest literal that reads back as the same value, with its f."""
     for digits in range(1, 10):
         text = f"{value:.{digits}g}"
 
@@ -272,7 +272,7 @@ def shortest(value: float) -> str:
 
 
 def kept_rows(names: list[str], flag: str) -> list[tuple[str, str, str]]:
-    """The table's rows of these names, or an error asking for the dump they come from."""
+    """Return the table's rows of these names; exit asking for `flag` if any is missing."""
     kept = {}
 
     for line in TABLE.read_text(encoding="utf-8").splitlines():
@@ -289,7 +289,7 @@ def kept_rows(names: list[str], flag: str) -> list[tuple[str, str, str]]:
 
 
 def camera(lit: Path | None) -> list[tuple[str, str, str]]:
-    """The follow camera's numbers from a level 0 lit.bin (section at 0x1A7C80), or the table's rows."""
+    """Return the follow camera's rows from a level 0 lit.bin, or else the table's rows."""
     if lit is None:
         return kept_rows([name for name, _, _ in CAMERA], "--lit <level 0 lit.bin>")
 
@@ -304,7 +304,7 @@ def camera(lit: Path | None) -> list[tuple[str, str, str]]:
 
 
 def attack_records(data: Path | None) -> list[tuple[str, str, str]]:
-    """Records 0 to 3's and 7 and 8's frames from a level 0 data.bin (its manifest.json beside it), or the table's rows."""
+    """Return the frames of records 0 to 3, 7 and 8 from a level 0 data.bin, or the table's rows."""
     if data is not None:
         manifest = json.loads((data.parent / "manifest.json").read_text(encoding="utf-8"))
         base = next(s["address"] for s in manifest["sections"] if s["name"] == "data")
@@ -334,9 +334,11 @@ def attack_records(data: Path | None) -> list[tuple[str, str, str]]:
 
 
 def main() -> int:
+    """Write the table from the decompilation and the dumps given, and say how many rows."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--decomp", type=Path, default=ROOT.parent / "rac2-decomp")
-    parser.add_argument("--lit", type=Path, help="level 0's lit.bin, for the run speed")
+    parser.add_argument("--decomp", type=Path, default=ROOT.parent / "rac2-decomp",
+                        help="a rac2-decomp checkout (default: ../rac2-decomp)")
+    parser.add_argument("--lit", type=Path, help="level 0's lit.bin, for the run speed and the camera")
     parser.add_argument("--data", type=Path, help="level 0's data.bin, for the attack records")
     args = parser.parse_args()
 

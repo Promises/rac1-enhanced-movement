@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Going Commando's air control, decided apart from game memory (DESIGN.md section 3). The jump
- * heights stay rac1's; only air_stick_speed (+0x424), set when a jump state is entered, changes.
+ * The air control decision: Going Commando's air stick speeds, apart from game memory (DESIGN.md
+ * section 3). Jump heights stay rac1's. Only air_stick_speed (+0x424) changes, which a jump state
+ * sets when it is entered.
  */
 #ifndef RAC1_ENHANCED_MOVEMENT_AIR_H
 #define RAC1_ENHANCED_MOVEMENT_AIR_H
@@ -11,9 +12,9 @@
 #include "rac1/rac1.h"
 #include "rac1/rac2.h"
 
-/* The states hero_update_movement's jump group runs (its case list), where air_stick_speed counts. */
+/* Returns whether a state is in hero_update_movement's jump group, where air_stick_speed counts. */
 static inline int bm_is_jump_state(int state) {
-    // The jump group's states, as hero_update_movement lists them.
+    // The case list of the jump group in hero_update_movement.
     switch (state) {
         case 0x07:
         case 0x09:
@@ -38,18 +39,20 @@ static inline int bm_is_jump_state(int state) {
     }
 }
 
-/* On a jump state's first tick: rac2's air stick speed where rac1 set its own default (5.7, and 3.5
- * in the double jump), else what rac1 set (its other values are rac2's too). */
+/* Returns the air stick speed for a jump state's first tick. Where rac1 set its default (5.7 u/s,
+ * or 3.5 in the double jump) this is rac2's; any other value is the same in both games and
+ * stays. */
 static inline float bm_air_stick_speed(int state, float current, const bm_tick* t) {
+    // A tolerance for float rounding, 0.0001 u/s.
     const float near = 1e-4f * t->ft;
 
-    // The double jump: 3.5 to 4.75.
+    // The double jump goes from 3.5 to 4.75 u/s.
     if (state == RAC1_STATE_DOUBLE_JUMP
         && fabsf(current - RAC1_DOUBLE_JUMP_AIR_SPEED * t->ft) < near) {
         return rac2_speed(RAC2_DOUBLE_JUMP_AIR_SPEED, t);
     }
 
-    // Every jump left at rac1's default: 5.7 to 5.95.
+    // Any jump at rac1's default goes from 5.7 to 5.95 u/s.
     if (fabsf(current - RAC1_AIR_STICK_SPEED * t->ft) < near) {
         return rac2_speed(RAC2_AIR_STICK_SPEED, t);
     }

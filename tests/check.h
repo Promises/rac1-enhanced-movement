@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
  *
- * The decision tests' checks: each failure prints its line and both values, and main returns the
- * count of failures (CTest fails on anything but 0).
+ * Checks for the decision tests. Each failure prints its file, line and both values, and main
+ * returns the number of failures, so CTest fails on anything but 0.
  */
 #ifndef RAC1_ENHANCED_MOVEMENT_CHECK_H
 #define RAC1_ENHANCED_MOVEMENT_CHECK_H
@@ -9,9 +9,10 @@
 #include <math.h>
 #include <stdio.h>
 
+/* The failures so far, the test's exit code. */
 static int g_failures;
 
-/* Two floats within `tol` of each other. */
+/* Checks that two floats are within `tol` of each other. */
 #define CHECK_NEAR(got, want, tol)                                                                 \
     do {                                                                                           \
         const double got_ = (got);                                                                 \
@@ -22,7 +23,7 @@ static int g_failures;
         }                                                                                          \
     } while (0)
 
-/* Two ints equal. */
+/* Checks that two integers are equal. */
 #define CHECK_EQ(got, want)                                                                        \
     do {                                                                                           \
         const long got_ = (long)(got);                                                             \
@@ -36,7 +37,7 @@ static int g_failures;
 /* The tolerance for values worked out by hand to 7 digits. */
 #define TOL 1e-6
 
-/* The end of main: a line saying how it went, the count as the exit code. */
+/* Ends main: prints whether the test passed and returns the failure count as its exit code. */
 #define CHECK_DONE(name)                                                                           \
     do {                                                                                           \
         printf("%s: %s\n", (name), g_failures ? "FAILED" : "ok");                                  \
