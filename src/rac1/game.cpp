@@ -58,8 +58,8 @@ struct Settings {
     bool flips = true;
     bool twist = true;
     bool wrench = true;
-    int camera = BM_CAMERA_RAC2;    // a BM_CAMERA_* (camera.h)
-    int clank = BM_CLANK_ENHANCED;  // a BM_CLANK_* (clank.h)
+    int camera = BM_CAMERA_ENHANCED;  // a BM_CAMERA_* (camera.h)
+    int clank = BM_CLANK_ENHANCED;    // a BM_CLANK_* (clank.h)
     bool trace = false;
 };
 
@@ -1589,16 +1589,21 @@ std::uint32_t strafe_buttons(const std::string& value) {
     return BM_PAD_L2 | BM_PAD_R2;
 }
 
-// Returns the BM_CAMERA_* (camera.h) for a `camera` setting value. Anything but `rac1` gives the
-// default, Going Commando's, including 0.3.0's `modern` from a host that does not replace a removed
-// value with the default as the port does.
+// Returns the BM_CAMERA_* (camera.h) for a `camera` setting value. Anything but `rac1` and `rac2`
+// gives the default, Enhanced, including 0.3.0's `modern` from a host that does not replace a
+// removed value with the default as the port does.
 int camera_choice(const std::string& value) {
     // `rac1` keeps the first game's camera.
     if (value == "rac1") {
         return BM_CAMERA_RAC1;
     }
 
-    return BM_CAMERA_RAC2;
+    // `rac2` gives Going Commando's speeds.
+    if (value == "rac2") {
+        return BM_CAMERA_RAC2;
+    }
+
+    return BM_CAMERA_ENHANCED;
 }
 
 // Returns the BM_CLANK_* (clank.h) for a `clank` setting value, or the default, enhanced, for
@@ -1744,7 +1749,10 @@ void load(openrac::Mod& mod) {
                         + (s_set.twist ? ", hip twist" : "")
                   : "Off")
         + ". Wrench: " + (s_set.wrench ? "Going Commando" : "Original") + ". Camera: "
-        + (s_set.camera == BM_CAMERA_RAC2 ? "Going Commando" : "Original") + ". Clank: "
+        + (s_set.camera == BM_CAMERA_ENHANCED ? "Enhanced"
+           : s_set.camera == BM_CAMERA_RAC2   ? "Going Commando"
+                                              : "Original")
+        + ". Clank: "
         + (s_set.clank == BM_CLANK_ENHANCED ? "Enhanced"
            : s_set.clank == BM_CLANK_RAC2   ? "Going Commando"
                                             : "Original")

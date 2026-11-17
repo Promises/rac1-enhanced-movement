@@ -48,24 +48,32 @@ static void gains(void) {
     CHECK_EQ(bm_camera_gain(BM_CAMERA_RAC1, fast, 2) == fast, 1);
     CHECK_EQ(bm_camera_gain(BM_CAMERA_RAC1, slow, 0) == slow, 1);
 
-    // rac2 gives its fastest step on every step of the game's option: 2.2 degrees a tick, 132 a
-    // second.
-    CHECK_NEAR(bm_camera_gain(BM_CAMERA_RAC2, slow, 0), 0.03839725, TOL);
-    CHECK_NEAR(bm_camera_gain(BM_CAMERA_RAC2, medium, 1), 0.03839725, TOL);
+    // rac2 keeps the slow and middle steps exactly, and turns its fastest at 2.2 degrees a tick,
+    // 132 a second, for rac1's 1.6.
+    CHECK_EQ(bm_camera_gain(BM_CAMERA_RAC2, slow, 0) == slow, 1);
+    CHECK_EQ(bm_camera_gain(BM_CAMERA_RAC2, medium, 1) == medium, 1);
     CHECK_NEAR(bm_camera_gain(BM_CAMERA_RAC2, fast, 2), 0.03839725, TOL);
-    CHECK_NEAR(bm_camera_gain(BM_CAMERA_RAC2, medium, 1) * 60.0 / DEG, 132.0, 1e-3);
+    CHECK_NEAR(bm_camera_gain(BM_CAMERA_RAC2, fast, 2) * 60.0 / DEG, 132.0, 1e-3);
 
-    // When another mod has doubled rac1's gain, rac2's is doubled too.
+    // Enhanced scales every step by 2.2 / 1.3: about 101.5, 132 and 162.5 degrees a second.
+    CHECK_NEAR(bm_camera_gain(BM_CAMERA_ENHANCED, slow, 0) * 60.0 / DEG, 60.0 * 2.2 / 1.3, 1e-3);
+    CHECK_NEAR(bm_camera_gain(BM_CAMERA_ENHANCED, medium, 1), 0.03839725, TOL);
+    CHECK_NEAR(bm_camera_gain(BM_CAMERA_ENHANCED, medium, 1) * 60.0 / DEG, 132.0, 1e-3);
+    CHECK_NEAR(bm_camera_gain(BM_CAMERA_ENHANCED, fast, 2) * 60.0 / DEG, 96.0 * 2.2 / 1.3, 1e-3);
+
+    // When another mod has doubled rac1's gain, the choice's is doubled too.
     CHECK_NEAR(bm_camera_gain(BM_CAMERA_RAC2, 2.0f * fast, 2), 0.0767945, TOL);
-    CHECK_NEAR(bm_camera_gain(BM_CAMERA_RAC2, 2.0f * medium, 1), 0.0767945, TOL);
+    CHECK_NEAR(bm_camera_gain(BM_CAMERA_ENHANCED, 2.0f * medium, 1), 0.0767945, TOL);
 
     // An option missing from rac1's table keeps the gain.
     CHECK_EQ(bm_camera_gain(BM_CAMERA_RAC2, 0.05f, 7) == 0.05f, 1);
+    CHECK_EQ(bm_camera_gain(BM_CAMERA_ENHANCED, 0.05f, 7) == 0.05f, 1);
 
     // A gain that is NaN, 0 or negative stays as it is.
     CHECK_EQ(isnan(bm_camera_gain(BM_CAMERA_RAC2, NAN, 1)), 1);
     CHECK_EQ(bm_camera_gain(BM_CAMERA_RAC2, 0.0f, 1) == 0.0f, 1);
     CHECK_EQ(bm_camera_gain(BM_CAMERA_RAC2, -0.03f, 2) == -0.03f, 1);
+    CHECK_EQ(bm_camera_gain(BM_CAMERA_ENHANCED, -0.03f, 1) == -0.03f, 1);
 }
 
 /* Tests when the stick turns the camera, as rac1's camera reads it. */
@@ -169,10 +177,10 @@ static void feels(void) {
     CHECK_NEAR(f.coast, 16.0, 1.0);
     CHECK_NEAR(f.stop, 31, 1);
 
-    // Going Commando's fastest step on the same spring turns 132 degrees a second, with the same
-    // ramp in ticks and 2.2 / 1.3 times the coast (about 27 degrees). The play-test measured 131.2,
-    // 11, 24 and 27.3, as in Going Commando's own port on that step.
-    f = turn(bm_camera_gain(BM_CAMERA_RAC2, RAC1_CAMERA_SPEED_MEDIUM, 1), 90, &ntsc);
+    // Enhanced at the default step turns at Going Commando's fastest, 132 degrees a second, on the
+    // same spring: the same ramp in ticks and 2.2 / 1.3 times the coast (about 27 degrees). The
+    // play-test measured 131.2, 11, 24 and 27.3, as in Going Commando's own port on its fastest step.
+    f = turn(bm_camera_gain(BM_CAMERA_ENHANCED, RAC1_CAMERA_SPEED_MEDIUM, 1), 90, &ntsc);
     CHECK_NEAR(f.rate, 132.0, 1e-3);
     CHECK_EQ(f.half, 11);
     CHECK_EQ(f.most, 24);

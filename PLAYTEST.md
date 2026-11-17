@@ -469,6 +469,26 @@ at its default (`clank` `enhanced`), compared tick by tick (`--same`):
 | Orxon's standard route with `clank` `rac1` | 901, 0 differ | 901, 0 differ |
 | Every setting off (`clank` `rac1`) against no mod, Veldin | 901, 0 differ, no hooks taken | 901, 0 differ, no hooks taken |
 
+### Camera choices (0.5.0)
+
+The camera route above (`CAM`, Veldin, the turn to the left at c165 for 44 ticks), with each choice
+on each step of the game's camera speed option (`OPENRAC_WRITE="1:15EDE4:<step>:30000"` on NTSC-U),
+measured with `--camera`. Yaw held, degrees a second; every run reached half its rate after 11 ticks
+and 90% after 24:
+
+| The game's step | `rac1` | `rac2` | `enhanced` (default) |
+|---|---|---|---|
+| Slowest (0) | 59.6 | 59.6 | 100.9 |
+| Middle (1, the game's default) | 77.5 | 77.5 | 131.2 |
+| Fastest (2) | 95.4 | 131.2 | 161.5 |
+
+- `rac2` matches Going Commando's own port on every step (77.5 on the middle, 131.0 on the fastest
+  above).
+- `enhanced` on the middle step is 0.4.1's `rac2` to the tick: the standard route with the default
+  settings against the 0.4.1 release, 901 ticks, 0 differ.
+- PAL v2.00, `enhanced` on the default step: 131.2, the same ramp and coast.
+- The load line says `Camera: Enhanced` with the defaults.
+
 ## Not covered by script
 
 These need a save that has reached them, or a teleport the route does not do yet:

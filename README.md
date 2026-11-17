@@ -12,9 +12,6 @@ own setting, so you can turn off what you don't want.
 In the OpenRAC launcher, open **Mods**, choose **Add from a link** and paste
 `https://github.com/kmomoney/rac1-enhanced-movement`.
 
-If you have **rac1-better-movement** (this mod's old name, versions 0.1.0 and
-0.2.0), remove it first. The two can't be on together.
-
 **Discs:** Ratchet & Clank PAL v2.00 (SCES-50916) and NTSC-U v1.00
 (SCUS-97199). Other versions, such as PAL v1.00 or the Japanese disc, aren't
 supported. The mod plays the same on both discs.
@@ -84,18 +81,20 @@ for. Hit timing and reach are the same in both games anyway.
 How fast the right stick turns the camera behind Ratchet (and Clank), in
 degrees a second at full stick:
 
-| The game's camera speed option | Original | Going Commando (default) |
-|---|---|---|
-| Slowest | 60 | 132 |
-| Middle (the game's default) | 78 | 132 |
-| Fastest | 96 | 132 |
+| The game's camera speed option | Original | Going Commando | Enhanced (default) |
+|---|---|---|---|
+| Slowest | 60 | 60 | 102 |
+| Middle (the game's default) | 78 | 78 | 132 |
+| Fastest | 96 | 132 | 162 |
 
-Going Commando's two slower speeds are the same as the first game's; only its
-fastest is quicker. So the **Going Commando** choice always uses that fastest
-speed. **Original** leaves the camera alone.
+- **Original** leaves the camera alone.
+- **Going Commando** uses that game's speeds. Only its fastest is quicker than
+  the first game's.
+- **Enhanced** makes every speed faster, so the game's default turns at Going
+  Commando's top speed and the game's option still picks slower or faster.
 
 First person (L1) and the game's camera invert options work as before with
-either choice.
+every choice.
 
 ### Clank
 
@@ -127,7 +126,7 @@ Swimming is the same in both games, so it doesn't change.
 | Strafe flips | On | X while strafing flips that way |
 | Hip twist | On | His hips turn while he strafes |
 | Going Commando wrench | On | The wrench timing |
-| Camera turn speed | Going Commando | Original or Going Commando |
+| Camera turn speed | Enhanced | Original, Going Commando or Enhanced |
 | Clank | Enhanced | Original, Going Commando or Enhanced |
 | Trace | Off | For bug reports: writes what the mod does to the game's log, every frame. Each player sets it for themselves |
 
@@ -154,7 +153,6 @@ only changes how your own character moves.
   sensitivity if that feels too fast.
 - **difficulty:** its **Ratchet's speed** slider still works and scales this
   mod's speeds too, Clank's included.
-- **rac1-better-movement** is this mod's old name: remove it.
 
 ## Known limits
 
@@ -200,6 +198,10 @@ faster lock-on turn are checked by the automated tests only. Results:
 
 ## Release notes
 
+- **0.5.0:** New **Enhanced** camera choice, now the default: faster on every
+  camera speed, 132 degrees a second on the game's default. **Going Commando**
+  now uses that game's own speeds. If you picked Going Commando before and want
+  the faster camera, pick Enhanced.
 - **0.4.1:** Plainer README, settings and log messages. It plays the same as 0.4.0.
 - **0.4.0:** New **Clank** setting: Going Commando's controls for Clank, or
   **Enhanced** (the default), which goes a little further. Jump heights, punch
@@ -210,8 +212,7 @@ faster lock-on turn are checked by the automated tests only. Results:
 - **0.3.0:** New **Going Commando wrench** setting, on by default (damage
   unchanged), and a camera turn speed setting. Square and X pressed together
   while strafing now swing, instead of sometimes throwing.
-- **0.2.1:** Renamed from rac1-better-movement. Remove the old mod, then add
-  this one from its link.
+- **0.2.1:** New name, Enhanced movement.
 - **0.2.0:** Adds the PAL v2.00 disc.
 - **0.1.0:** First version, for the NTSC-U disc.
 

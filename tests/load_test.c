@@ -493,7 +493,7 @@ static void defaults(void) {
     s_ground = s_air = s_flips = s_twist = s_wrench = 1;
     s_trace = 0;
     s_strafe = "both";
-    s_camera = "rac2";
+    s_camera = "enhanced";
     s_clank = "enhanced";
     g_no_approach = 0;
     g_game = "rac1";
@@ -597,12 +597,12 @@ static void refusals(void) {
     CHECK_EQ(g_hooks[UPDATE].replacement == NULL, 1);
 
     // A camera value the manifest no longer has (0.3.0's `modern`, from a host that does not swap
-    // in the default as the port does) gives the default, Going Commando's, with the same hooks
+    // in the default as the port does) gives the default, Enhanced, with the same hooks
     // rather than none.
     s_camera = "modern";
     CHECK_EQ(load_mod(), 0);
     CHECK_EQ(g_hooks_taken, 2);
-    CHECK_EQ(strstr(g_last_log, "Camera: Going Commando") != NULL, 1);
+    CHECK_EQ(strstr(g_last_log, "Camera: Enhanced") != NULL, 1);
 }
 
 /* Every hook taken with the defaults, and all but one, with a warning, on a port without
@@ -1134,13 +1134,38 @@ static void strafing(void) {
 }
 
 /* The `camera` setting's turn: each choice's gain, the only word written, put back before the next
- * tick; a saved `modern` (removed after 0.3.0) read as Going Commando's; nothing steered out of
- * play or written into another level's program; and the strafe camera alongside. */
+ * tick; a saved `modern` (removed after 0.3.0) read as the default, Enhanced; nothing steered out
+ * of play or written into another level's program; and the strafe camera alongside. */
 static void camera_turn(void) {
+    const float slow = 0.017453292f;
     const float medium = 0.02268928f;
     const float fast = 0.027925268f;
+    const float enhanced = 0.03839725f / 0.02268928f;
 
-    // Going Commando's at the game's middle step gives its fastest, 2.2 degrees a tick for 1.3.
+    // Going Commando's keeps the game's slow and middle steps and turns its fastest at 2.2 degrees
+    // a tick for 1.6.
+    defaults();
+    s_camera = "rac2";
+    load_mod();
+    reset_game();
+    putf(P(BM_PAD_ANALOG), 1.0f);
+    camera_update(medium);
+    CHECK_EQ(getf(D->cam_gain) == medium, 1);
+    CALL_PAD();
+    putu(D->cam_option, 0);
+    camera_update(slow);
+    CHECK_EQ(getf(D->cam_gain) == slow, 1);
+    CALL_PAD();
+    putu(D->cam_option, 2);
+    camera_update(fast);
+    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CALL_PAD();
+    CHECK_EQ(getf(D->cam_gain) == fast, 1);
+    putu(D->cam_option, 1);
+    putf(P(BM_PAD_ANALOG), 0.0f);
+
+    // Enhanced, the default, at the game's middle step gives Going Commando's fastest, 2.2 degrees
+    // a tick for 1.3.
     defaults();
     load_mod();
     reset_game();
@@ -1151,8 +1176,8 @@ static void camera_turn(void) {
     CALL_PAD();
     CHECK_EQ(getf(D->cam_gain) == medium, 1);
 
-    // At the fast step with the stick turning the camera: 2.2 degrees a tick for 1.6, and no other
-    // game word written. One update runs first, so the stub for the game's camera code has already
+    // At the fast step with the stick turning the camera: 1.6 degrees a tick times 2.2 / 1.3, and no
+    // other game word written. One update runs first, so the stub for the game's camera code has already
     // made its writes.
     putu(D->cam_option, 2);
     putf(P(BM_PAD_ANALOG), 1.0f);
@@ -1161,7 +1186,7 @@ static void camera_turn(void) {
     CALL_PAD();
     memcpy(g_before, g_mem, MEMORY_SIZE);
     camera_update(fast);
-    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CHECK_NEAR(getf(D->cam_gain), fast * enhanced, TOL);
     CHECK_EQ(changed_besides(D->cam_gain), 0);
 
     // The next poll puts it back; the game would reset it from its table anyway.
@@ -1169,15 +1194,15 @@ static void camera_turn(void) {
     CHECK_EQ(getf(D->cam_gain) == fast, 1);
 
     // A second update with no table write or poll in between puts the gain back first, so it is
-    // 2.2 degrees again, not scaled twice.
+    // scaled once, not twice.
     camera_update(fast);
     CALL_CAMERA();
-    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    CHECK_NEAR(getf(D->cam_gain), fast * enhanced, TOL);
     CALL_PAD();
     CHECK_EQ(getf(D->cam_gain) == fast, 1);
 
-    // A saved `modern`, which the manifest no longer lists, gives the default, Going Commando's, on
-    // every step and with the stick on the camera (0.3.0 tripled the gain and stiffened the eye).
+    // A saved `modern`, which the manifest no longer lists, gives the default, Enhanced, on every
+    // step and with the stick on the camera (0.3.0 tripled the gain and stiffened the eye).
     s_camera = "modern";
     load_mod();
     reset_game();
@@ -1192,8 +1217,8 @@ static void camera_turn(void) {
     CALL_PAD();
     CHECK_EQ(getf(D->cam_gain) == medium, 1);
     putu(D->cam_option, 0);
-    camera_update(0.017453292f);
-    CHECK_NEAR(getf(D->cam_gain), 0.03839725, TOL);
+    camera_update(slow);
+    CHECK_NEAR(getf(D->cam_gain), slow * enhanced, TOL);
     CALL_PAD();
     putu(D->cam_option, 1);
     putf(P(BM_PAD_ANALOG + 4), 0.0f);
@@ -1207,7 +1232,7 @@ static void camera_turn(void) {
     g_level = 0;
 
     // Out of play (a scene), nothing is steered.
-    s_camera = "rac2";
+    s_camera = "enhanced";
     load_mod();
     reset_game();
     putf(P(BM_PAD_ANALOG), 1.0f);
@@ -1513,9 +1538,9 @@ static void pal_tick(void) {
     g_inside = NULL;
     CALL_ADVANCE();
 
-    // Going Commando's camera at 50 Hz gives its fastest step per tick, since rac1 counts the gain
-    // per tick; a saved `modern` does the same.
-    s_camera = "rac2";
+    // Enhanced at 50 Hz gives Going Commando's fastest step per tick at the middle step, since rac1
+    // counts the gain per tick; a saved `modern` does the same.
+    s_camera = "enhanced";
     load_mod();
     putf(P(BM_PAD_ANALOG), -1.0f);
     camera_update(0.02268928f);

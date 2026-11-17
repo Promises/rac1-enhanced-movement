@@ -658,9 +658,10 @@ before step 3, so the mod sets there what the rest of the update reads, for that
 | Choice | What the update reads | Put back |
 |---|---|---|
 | `rac1` | nothing: the hook is not taken for it (with the strafe off) | |
-| `rac2` | `follow_cam_setting_value` × rac2's fastest entry (2.2 degrees a tick) over rac1's entry for the option: 132 degrees a second on every step (2.2 for 1.0, 1.3 or 1.6). Another mod's scaling of the gain survives (the ratio); an option rac1's table does not have keeps the gain | rac1 sets it again from its table at its next update; the mod's pad hook (`rac1.pad.process_report`, before the next tick) and the hook's own start also put it back if it still holds what the mod wrote, in the level whose program it is in |
+| `rac2` | `follow_cam_setting_value` × rac2's entry over rac1's for the option: the slow and middle steps match and keep the gain exactly; the fastest is 2.2 degrees a tick for 1.6 (60 / 78 / 132 degrees a second). Another mod's scaling of the gain survives (the ratio); an option rac1's table does not have keeps the gain |
+| `enhanced` | `follow_cam_setting_value` × rac2's fastest entry over rac1's middle one (2.2 / 1.3) on every step: about 102 / 132 / 162 degrees a second. Another mod's scaling survives; an unknown option keeps the gain | rac1 sets it again from its table at its next update; the mod's pad hook (`rac1.pad.process_report`, before the next tick) and the hook's own start also put it back if it still holds what the mod wrote, in the level whose program it is in |
 
-The eye keeps rac1's spring under both: with `rac2`'s gain it ramps as the game's does (90% after 24
+The eye keeps rac1's spring under every choice: with `enhanced`'s gain on the default step it ramps as the game's does (90% after 24
 ticks) and coasts 2.2 / 1.3 as far (27 degrees). `tests/camera_test.c` works it through
 `rope_spring_turn` and gets the play-test's numbers.
 

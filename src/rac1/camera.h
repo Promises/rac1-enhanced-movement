@@ -23,8 +23,9 @@
 
 /* The values of the `camera` setting. */
 enum {
-    BM_CAMERA_RAC1 = 0, /* the game's speed: the mod changes nothing */
-    BM_CAMERA_RAC2 = 1, /* Going Commando's fastest step, whatever the game's option */
+    BM_CAMERA_RAC1 = 0,     /* the game's speed: the mod changes nothing */
+    BM_CAMERA_RAC2 = 1,     /* Going Commando's table: a faster fastest step */
+    BM_CAMERA_ENHANCED = 2, /* every step scaled so the default step turns at rac2's fastest */
 };
 
 /* Returns rac1's speed table entry in radians a tick for the game's camera speed option
@@ -59,31 +60,34 @@ static inline float bm_rac2_camera_speed(int option) {
 }
 
 /* Returns the gain for the follow camera's turn this tick. `gain` is what rac1 set: its table's
- * entry for `option`, or another mod's change of it.
- * - BM_CAMERA_RAC1 keeps it as it is.
- * - BM_CAMERA_RAC2 gives Going Commando's fastest step (2.2 degrees a tick, 132 a second) on every
- *   step of the game's option: the gain times rac2's fastest entry over rac1's entry for `option`,
- *   so another mod's scaling stays. At the default step both games turn at 78 degrees a second, so
- *   the setting asks for Going Commando's top speed (PLAN.md section 10). An option rac1's table
- *   does not have keeps the gain.
- * Both games count the gain per tick, unscaled at 50 Hz, so this needs no tick. A gain that is not
- * a finite number above 0 is returned as it is. */
+ * entry for `option`, or another mod's change of it. Each choice scales it, so another mod's
+ * scaling stays.
+ * - BM_CAMERA_RAC1 keeps it as it is: 60, 78 or 96 degrees a second.
+ * - BM_CAMERA_RAC2 gives Going Commando's entry for `option`: 60, 78 or 132. Its slow and middle
+ *   entries match rac1's, so those keep the gain exactly.
+ * - BM_CAMERA_ENHANCED scales every step by rac2's fastest entry over rac1's middle one (2.2 / 1.3):
+ *   about 102, 132 or 162, so the game's default step turns at Going Commando's top speed and the
+ *   game's option still makes it slower or faster (PLAN.md section 10).
+ * An option rac1's table does not have keeps the gain. Both games count the gain per tick, unscaled
+ * at 50 Hz, so this needs no tick. A gain that is not a finite number above 0 is returned as it
+ * is. */
 static inline float bm_camera_gain(int setting, float gain, int option) {
-    // A bad read or a zero gain has nothing to scale.
-    if (!isfinite(gain) || gain <= 0.0f) {
+    const float own = bm_rac1_camera_speed(option);
+
+    // A bad read, a zero gain or an unknown option has nothing to scale.
+    if (!isfinite(gain) || gain <= 0.0f || own <= 0.0f) {
         return gain;
     }
 
-    // Going Commando's fastest step, entry 2 of its table.
+    // Going Commando's table, where it differs from rac1's.
     if (setting == BM_CAMERA_RAC2) {
-        const float own = bm_rac1_camera_speed(option);
+        const float theirs = bm_rac2_camera_speed(option);
+        return fabsf(theirs - own) <= own * 1e-6f ? gain : gain * (theirs / own);
+    }
 
-        // rac1's table has no entry for this option.
-        if (own <= 0.0f) {
-            return gain;
-        }
-
-        return gain * (bm_rac2_camera_speed(2) / own);
+    // Every step faster by the same factor.
+    if (setting == BM_CAMERA_ENHANCED) {
+        return gain * (bm_rac2_camera_speed(2) / bm_rac1_camera_speed(1));
     }
 
     return gain;
