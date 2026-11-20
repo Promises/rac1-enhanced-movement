@@ -89,9 +89,10 @@ def main() -> int:
     expect(set(manifest["hooks"]) == {HOOK_IDS[t] for t in taken if t in HOOK_IDS},
            f"hooks {sorted(manifest['hooks'])} against game.cpp's {sorted(HOOK_IDS[t] for t in taken if t in HOOK_IDS)}")
 
-    # The conflicts with lock-strafe and the old id, and the multiplayer kind.
-    expect([c["id"] for c in manifest.get("conflicts", [])] == ["lock-strafe", "rac1-better-movement"],
-           "conflicts with lock-strafe and with the mod's old id")
+    # The conflict with lock-strafe, and the multiplayer kind. Only ids the mod index lists: it drops
+    # a version whose conflicts name any other, as it did every version up to 1.0.0 for the old id.
+    expect([c["id"] for c in manifest.get("conflicts", [])] == ["lock-strafe"],
+           "conflicts with lock-strafe only")
     expect(manifest.get("multiplayer") == "input", "multiplayer is input")
 
     for error in errors:

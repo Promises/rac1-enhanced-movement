@@ -199,6 +199,9 @@ faster lock-on turn are checked by the automated tests only. Results:
 
 ## Release notes
 
+- **1.0.1:** Shows up in the launcher's list of mods. It plays the same as
+  1.0.0. If you still have Better movement (Going Commando), this mod's old
+  version, remove it.
 - **1.0.0:** First stable release, after a full playthrough. New **Enhanced**
   camera choice, now the default: faster on every camera speed, 132 degrees a
   second on the game's default. **Going Commando** now uses that game's own
