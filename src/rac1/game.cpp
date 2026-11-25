@@ -1335,12 +1335,35 @@ void turn(Original original, int32_t mode, float accel, float damp, float limit)
             s.strafe_yaw = move;
             put<float>(hero(BM_HERO_YAW_RATE), s.strafe_rate);
             put<float>(hero(BM_HERO_MOVE_YAW), camera_yaw());
+
+            // Under a surface's gravity rac1 turns him to the stick's way in the world instead of
+            // the move yaw: for the call, that way is the stick's forward (the camera's row 0).
+            const bool surface = get<std::uint8_t>(hero(BM_HERO_GRAVITY_MODE)) != 0;
+            float stick_dir[4];
+
+            if (surface) {
+                for (int i = 0; i < 4; i++) {
+                    stick_dir[i] = get<float>(hero(BM_HERO_STICK_DIR + 4 * i));
+                    put<float>(
+                        hero(BM_HERO_STICK_DIR + 4 * i),
+                        get<float>(level0(s_disc->cam_matrix) + 4 * i)
+                    );
+                }
+            }
+
             original(
                 mode,
                 rac2_spring(RAC2_STRAFE_TURN_ACCEL, &s.tick),
                 rac2_spring(RAC2_STRAFE_TURN_DAMP, &s.tick),
                 rac2_turn_limit(RAC2_STRAFE_TURN_LIMIT, &s.tick)
             );
+
+            if (surface) {
+                for (int i = 0; i < 4; i++) {
+                    put<float>(hero(BM_HERO_STICK_DIR + 4 * i), stick_dir[i]);
+                }
+            }
+
             s.strafe_rate = get<float>(hero(BM_HERO_YAW_RATE));
             put<float>(hero(BM_HERO_YAW_RATE), 0.0f);
             put<float>(hero(BM_HERO_YAW_ERROR), 0.0f);
@@ -1502,6 +1525,28 @@ void planar_velocity(Original original, float angle) {
         // While strafing, he moves along the stick.
         if (s.strafing) {
             original(s.strafe_yaw);
+
+            // Under a surface's gravity rac1 moves him along his facing whatever the angle, so the
+            // velocity is set along the stick's way on the surface, at his speed.
+            if (get<std::uint8_t>(hero(BM_HERO_GRAVITY_MODE)) != 0) {
+                float stick[3];
+                float normal[3];
+                float v[3];
+
+                for (int i = 0; i < 3; i++) {
+                    stick[i] = get<float>(hero(BM_HERO_STICK_DIR + 4 * i));
+                    normal[i] = get<float>(hero(BM_HERO_GROUND_NORMAL + 4 * i));
+                }
+
+                if (bm_surface_strafe_velocity(
+                        stick, normal, get<float>(hero(BM_HERO_GROUND_SPEED)), v
+                    )) {
+                    for (int i = 0; i < 3; i++) {
+                        put<float>(hero(BM_HERO_VELOCITY + 4 * i), v[i]);
+                    }
+                }
+            }
+
             return;
         }
 
