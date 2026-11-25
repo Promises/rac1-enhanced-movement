@@ -237,8 +237,8 @@ bool strafe_takes_pad() {
 }
 
 // Returns whether he strafes this tick: a strafe button is held and the pad's buttons are the
-// strafe's, the follow camera is in use, gravity is normal, and he is not in the long jump (rac2
-// drops its strafe there).
+// strafe's, the follow camera is in use, the gravity allows it (bm_strafe_gravity_ok), and he is not
+// in the long jump (rac2 drops its strafe there).
 bool strafe_now() {
     // No strafe button is held, or the game has the buttons now.
     if (!s.strafe_held || !strafe_takes_pad()) {
@@ -247,7 +247,7 @@ bool strafe_now() {
 
     const gaddr cam = get<std::uint32_t>(level0(s_disc->follow_cam));
     return valid(cam) && get<int16_t>(cam + BM_CAMERA_KIND) == 0
-           && get<std::uint8_t>(hero(BM_HERO_GRAVITY_MODE)) == 0
+           && bm_strafe_gravity_ok(get<std::uint8_t>(hero(BM_HERO_GRAVITY_MODE)), state())
            && state() != RAC1_STATE_PACK_LONG_JUMP;
 }
 

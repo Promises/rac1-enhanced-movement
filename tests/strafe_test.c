@@ -185,11 +185,32 @@ static void anim(void) {
     CHECK_EQ(bm_anim_crossed_back(5, 60, 30, 1), 0);
 }
 
+/* Tests the gravity's part: normal gravity, and a surface's outside the Magneboots' own states. */
+static void gravity(void) {
+    // Normal gravity strafes in any state.
+    CHECK_EQ(bm_strafe_gravity_ok(0, RAC1_STATE_RUN), 1);
+    CHECK_EQ(bm_strafe_gravity_ok(0, RAC1_STATE_MAGNET_WALK), 1);
+
+    // A surface's gravity in the plain run, idle and jump (Gravity Boots played as plain ground).
+    CHECK_EQ(bm_strafe_gravity_ok(1, RAC1_STATE_RUN), 1);
+    CHECK_EQ(bm_strafe_gravity_ok(1, RAC1_STATE_IDLE), 1);
+    CHECK_EQ(bm_strafe_gravity_ok(1, RAC1_STATE_JUMP), 1);
+
+    // The Magneboots' own walk, wrench swing and hop do not.
+    CHECK_EQ(bm_strafe_gravity_ok(1, RAC1_STATE_MAGNET_WALK), 0);
+    CHECK_EQ(bm_strafe_gravity_ok(1, RAC1_STATE_MAGNET_WRENCH), 0);
+    CHECK_EQ(bm_strafe_gravity_ok(1, RAC1_STATE_MAGNET_HOP), 0);
+
+    // Any other gravity mode does not either.
+    CHECK_EQ(bm_strafe_gravity_ok(2, RAC1_STATE_RUN), 0);
+}
+
 int main(void) {
     sectors();
     sides();
     moves();
     drift();
     anim();
+    gravity();
     CHECK_DONE("strafe");
 }

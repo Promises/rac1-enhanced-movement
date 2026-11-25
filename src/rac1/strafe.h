@@ -253,4 +253,19 @@ static inline int bm_anim_crossed_back(int from, int to, int at, int wrapped) {
     return at <= from || to < at;
 }
 
+/* Returns whether the gravity lets him strafe: normal gravity (mode 0), or a surface's gravity while
+ * he is in none of the Magneboots' own states. rac1's Magneboots walk him in their own states, where
+ * rac2's strafe has no place; a mod that plays magnetic surfaces as plain ground (Going Commando's
+ * Gravity Boots) runs and jumps there in the plain states, under the surface's gravity (mode 1). */
+static inline int bm_strafe_gravity_ok(int gravity_mode, int state) {
+    // Normal gravity.
+    if (gravity_mode == 0) {
+        return 1;
+    }
+
+    // A surface's gravity, outside the Magneboots' walk, wrench swing and hop.
+    return gravity_mode == 1 && state != RAC1_STATE_MAGNET_WALK && state != RAC1_STATE_MAGNET_WRENCH
+           && state != RAC1_STATE_MAGNET_HOP;
+}
+
 #endif /* RAC1_ENHANCED_MOVEMENT_STRAFE_H */
